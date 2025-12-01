@@ -1,5 +1,5 @@
 {
-  "name": "restore-ai",
+  "name": "pixie.ai",
   "private": true,
   "version": "1.0.0",
   "description": "AI-powered image restoration and enhancement system using Transformers.js",
