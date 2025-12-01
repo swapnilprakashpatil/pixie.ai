@@ -13,6 +13,8 @@ import {
   ListItemText,
   Divider,
   Alert,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -20,6 +22,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DownloadIcon from '@mui/icons-material/Download';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import InfoIcon from '@mui/icons-material/Info';
+import ErrorIcon from '@mui/icons-material/Error';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import WarningIcon from '@mui/icons-material/Warning';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { useAppStore } from '../store/appStore';
 import { detectCapabilities, getGPUInfo, getMemoryInfo, formatTime, formatBytes } from '../lib/utils';
 
@@ -27,6 +34,7 @@ export default function DiagnosticsTab() {
   const { logs, clearLogs, performanceMetrics } = useAppStore();
   const [systemInfo, setSystemInfo] = useState(null);
   const [memoryInfo, setMemoryInfo] = useState(null);
+  const [logFilter, setLogFilter] = useState('all'); // 'all', 'info', 'success', 'error'
 
   useEffect(() => {
     loadSystemInfo();
@@ -102,7 +110,7 @@ export default function DiagnosticsTab() {
       </Alert>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -130,7 +138,7 @@ export default function DiagnosticsTab() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -180,7 +188,7 @@ export default function DiagnosticsTab() {
         </Grid>
 
         {systemInfo.gpu && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -202,7 +210,7 @@ export default function DiagnosticsTab() {
           </Grid>
         )}
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -234,7 +242,7 @@ export default function DiagnosticsTab() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -287,9 +295,45 @@ export default function DiagnosticsTab() {
 
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="h6">Event Logs</Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Log Type Filter */}
+              <ToggleButtonGroup
+                value={logFilter}
+                exclusive
+                onChange={(e, newFilter) => {
+                  if (newFilter !== null) {
+                    setLogFilter(newFilter);
+                  }
+                }}
+                size="small"
+                aria-label="log filter"
+              >
+                <ToggleButton value="all" aria-label="all logs">
+                  <FilterListIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                  All ({logs.length})
+                </ToggleButton>
+                <ToggleButton value="info" aria-label="info logs">
+                  <InfoIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                  Info ({logs.filter(log => log.type === 'info').length})
+                </ToggleButton>
+                <ToggleButton value="success" aria-label="success logs">
+                  <CheckCircleOutlineIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                  Success ({logs.filter(log => log.type === 'success').length})
+                </ToggleButton>
+                <ToggleButton value="warning" aria-label="warning logs">
+                  <WarningIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                  Warning ({logs.filter(log => log.type === 'warning').length})
+                </ToggleButton>
+                <ToggleButton value="error" aria-label="error logs">
+                  <ErrorIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                  Error ({logs.filter(log => log.type === 'error').length})
+                </ToggleButton>
+              </ToggleButtonGroup>
+              
+              <Divider orientation="vertical" flexItem />
+              
               <Button 
                 size="small" 
                 startIcon={<ContentCopyIcon />}
@@ -298,12 +342,31 @@ export default function DiagnosticsTab() {
                     `[${new Date(log.timestamp).toLocaleTimeString()}] [${log.type.toUpperCase()}] ${log.message}`
                   ).join('\n');
                   navigator.clipboard.writeText(logText).then(() => {
-                    alert('Logs copied to clipboard!');
+                    alert('All logs copied to clipboard!');
                   });
                 }}
                 disabled={logs.length === 0}
               >
-                Copy Logs
+                Copy All Logs
+              </Button>
+              <Button 
+                size="small" 
+                startIcon={<ContentCopyIcon />}
+                color="error"
+                onClick={() => {
+                  const errorLogs = logs.filter(log => log.type === 'error');
+                  const logText = errorLogs.map(log => 
+                    `[${new Date(log.timestamp).toLocaleTimeString()}] [ERROR] ${log.message}`
+                  ).join('\n');
+                  if (errorLogs.length > 0) {
+                    navigator.clipboard.writeText(logText).then(() => {
+                      alert(`${errorLogs.length} error log(s) copied to clipboard!`);
+                    });
+                  }
+                }}
+                disabled={logs.filter(log => log.type === 'error').length === 0}
+              >
+                Copy Errors Only
               </Button>
               <Button size="small" onClick={clearLogs} disabled={logs.length === 0}>
                 Clear Logs
@@ -314,35 +377,49 @@ export default function DiagnosticsTab() {
             <Alert severity="info">No logs available</Alert>
           ) : (
             <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
-              {logs.map((log, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    p: 1,
-                    mb: 1,
-                    borderRadius: 1,
-                    bgcolor: 'background.default',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.5 }}>
-                    <Chip
-                      label={log.type}
-                      size="small"
-                      color={
-                        log.type === 'error'
-                          ? 'error'
-                          : log.type === 'success'
-                          ? 'success'
-                          : 'default'
-                      }
-                    />
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </Typography>
+              {(() => {
+                const filteredLogs = logs.filter(log => logFilter === 'all' || log.type === logFilter);
+                
+                if (filteredLogs.length === 0) {
+                  return (
+                    <Alert severity="info" sx={{ mt: 2 }}>
+                      No {logFilter !== 'all' ? logFilter : ''} logs available
+                    </Alert>
+                  );
+                }
+                
+                return filteredLogs.map((log, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      p: 1,
+                      mb: 1,
+                      borderRadius: 1,
+                      bgcolor: 'background.default',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.5 }}>
+                      <Chip
+                        label={log.type}
+                        size="small"
+                        color={
+                          log.type === 'error'
+                            ? 'error'
+                            : log.type === 'success'
+                            ? 'success'
+                            : log.type === 'warning'
+                            ? 'warning'
+                            : 'default'
+                        }
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2">{log.message}</Typography>
                   </Box>
-                  <Typography variant="body2">{log.message}</Typography>
-                </Box>
-              ))}
+                ));
+              })()}
             </Box>
           )}
         </CardContent>

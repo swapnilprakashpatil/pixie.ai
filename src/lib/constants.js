@@ -86,6 +86,10 @@ export const MODELS = {
     description:
       "Advanced semantic segmentation colorization using region analysis for natural skin tones, fabrics, and backgrounds.",
     task: "image-colorization",
+    models: [
+      { id: "semantic-colorization-engine", name: "Semantic Colorization" },
+      { id: "Qwen/Qwen-Image", name: "Qwen Image Colorization" },
+    ],
     processingSteps: {
       loading:
         "Loading semantic colorization engine - Multi-pass region detector with photographic color priors for realistic results",
@@ -176,6 +180,18 @@ export const MODELS = {
       "Surveillance and security",
       "Autonomous vehicles",
       "Retail inventory management",
+    ],
+    models: [
+      {
+        id: "Xenova/yolov11n",
+        name: "YOLOv11 Nano",
+        description: "Fast and efficient YOLOv11 model optimized for speed",
+      },
+      {
+        id: "Xenova/detr-resnet-50",
+        name: "DETR ResNet-50",
+        description: "Transformer-based detection with ResNet-50 backbone",
+      },
     ],
   },
   [TASKS.POSE_ESTIMATION]: {
@@ -377,6 +393,108 @@ export const TABS = {
   INFORMATION: "information",
   DEMO: "demo",
   DIAGNOSTICS: "diagnostics",
+};
+
+// Alternative model configurations
+export const ALTERNATIVE_MODELS = {
+  "Qwen/Qwen-Image": {
+    id: "Qwen/Qwen-Image",
+    name: "Qwen Image Colorization",
+    description:
+      "AI-powered image colorization using Qwen's vision-language model for intelligent color prediction based on scene understanding.",
+    task: "image-colorization",
+    processingSteps: {
+      loading:
+        "Loading Qwen Image model from Hugging Face - Advanced vision-language model with deep scene understanding for colorization",
+      processing:
+        "Analyzing grayscale image using vision transformer to understand scene context, objects, and spatial relationships for intelligent color assignment",
+      generating:
+        "Generating vibrant colors using AI-guided palette selection with smooth gradients and natural color transitions for photorealistic results",
+    },
+    features: [
+      "Vision-language model",
+      "Scene understanding",
+      "Context-aware colorization",
+      "Natural color palettes",
+      "Smooth color transitions",
+      "Object-aware coloring",
+    ],
+    limitations: [
+      "Larger model size",
+      "May require more processing time",
+      "Color choices based on training data",
+    ],
+    useCases: [
+      "Black and white photo restoration",
+      "Historical image colorization",
+      "Artistic photo enhancement",
+      "Archive restoration projects",
+    ],
+  },
+  "Xenova/detr-resnet-50": {
+    id: "Xenova/detr-resnet-50",
+    name: "DETR ResNet-50 Object Detection",
+    description:
+      "End-to-End object detection with transformers (DETR) using ResNet-50 backbone. Detects objects using an encoder-decoder transformer architecture.",
+    task: "object-detection",
+    processingSteps: {
+      loading:
+        "Downloading DETR ResNet-50 model from Hugging Face - Transformer-based object detection with attention mechanisms",
+      processing:
+        "Running DETR transformer inference using encoder-decoder architecture with attention mechanisms for precise object localization",
+      generating:
+        "Post-processing transformer outputs and rendering bounding boxes with class labels and confidence scores (50%+ confidence)",
+    },
+    features: [
+      "Transformer-based architecture",
+      "ResNet-50 backbone",
+      "91 COCO object classes",
+      "End-to-end detection pipeline",
+      "Attention-based object queries",
+      "No anchor boxes needed",
+    ],
+    limitations: [
+      "Larger model size (~160MB)",
+      "Slower inference than YOLO",
+      "Requires more memory",
+    ],
+    useCases: [
+      "Detailed object detection",
+      "Research and experimentation",
+      "High-accuracy requirements",
+      "Complex scene understanding",
+    ],
+  },
+  "Xenova/yolov11n": {
+    id: "Xenova/yolov11n",
+    name: "YOLOv11 Nano Object Detection",
+    description:
+      "Fast and efficient YOLOv11 model optimized for speed with 80 COCO classes.",
+    task: "object-detection",
+    processingSteps: {
+      loading:
+        "Downloading YOLOv11 nano ONNX model from Hugging Face - Latest YOLO architecture with improved accuracy and speed",
+      processing:
+        "Running YOLOv11 inference on 640x640 preprocessed image, detecting 80 object classes from COCO dataset with enhanced precision",
+      generating:
+        "Applying Non-Maximum Suppression and drawing bounding boxes with labels for detected objects (25%+ confidence)",
+    },
+    features: [
+      "YOLOv11 ONNX model (2024)",
+      "80 COCO object classes",
+      "Fast inference speed",
+      "Optimized for browser",
+    ],
+    limitations: [
+      "Smaller model, lower accuracy than DETR",
+      "May miss small objects",
+    ],
+    useCases: [
+      "Real-time detection",
+      "Fast processing needs",
+      "Resource-constrained environments",
+    ],
+  },
 };
 
 // Supported image formats

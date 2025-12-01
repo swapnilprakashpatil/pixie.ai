@@ -291,27 +291,27 @@ const ArchitectureDiagram = () => {
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#667eea' }}></Box>
-            <Typography variant="caption">Runtime</Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>Runtime</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#10b981' }}></Box>
-            <Typography variant="caption">Acceleration</Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>Acceleration</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#3b82f6' }}></Box>
-            <Typography variant="caption">ML Framework</Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>ML Framework</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ec4899' }}></Box>
-            <Typography variant="caption">Processing</Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>Processing</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#f97316' }}></Box>
-            <Typography variant="caption">Storage</Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>Storage</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ff9d00' }}></Box>
-            <Typography variant="caption">Model Hub</Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>Model Hub</Typography>
           </Box>
         </Box>
 

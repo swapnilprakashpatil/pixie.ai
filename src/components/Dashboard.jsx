@@ -12,6 +12,9 @@ import {
   Avatar,
   IconButton,
   Collapse,
+  Alert,
+  AlertTitle,
+  Link,
 } from '@mui/material';
 import {
   AutoFixHigh as AutoFixHighIcon,
@@ -42,8 +45,10 @@ import {
   Rocket as RocketIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TASKS, MODELS, TABS } from '../lib/constants';
 import { useAppStore } from '../store/appStore';
 import PixieLogo from './PixieLogo';
@@ -76,6 +81,43 @@ export default function Dashboard() {
     'Computer Vision': true,
     'Generative AI': true,
   });
+  const [webGPUSupported, setWebGPUSupported] = useState(null);
+  const [browserInfo, setBrowserInfo] = useState({ name: 'Unknown', version: 'Unknown' });
+
+  useEffect(() => {
+    // Detect WebGPU support
+    const checkWebGPU = async () => {
+      const hasGPU = 'gpu' in navigator;
+      setWebGPUSupported(hasGPU);
+
+      // Detect browser
+      const ua = navigator.userAgent;
+      let name = 'Unknown';
+      let version = 'Unknown';
+
+      if (ua.includes('Chrome') && !ua.includes('Edg')) {
+        name = 'Chrome';
+        const match = ua.match(/Chrome\/(\d+)/);
+        version = match ? match[1] : 'Unknown';
+      } else if (ua.includes('Edg')) {
+        name = 'Edge';
+        const match = ua.match(/Edg\/(\d+)/);
+        version = match ? match[1] : 'Unknown';
+      } else if (ua.includes('Firefox')) {
+        name = 'Firefox';
+        const match = ua.match(/Firefox\/(\d+)/);
+        version = match ? match[1] : 'Unknown';
+      } else if (ua.includes('Safari') && !ua.includes('Chrome')) {
+        name = 'Safari';
+        const match = ua.match(/Version\/(\d+)/);
+        version = match ? match[1] : 'Unknown';
+      }
+
+      setBrowserInfo({ name, version });
+    };
+
+    checkWebGPU();
+  }, []);
 
   const toggleCategory = (category) => {
     setExpandedCategories(prev => ({
@@ -122,7 +164,7 @@ export default function Dashboard() {
           </Box>
         </Box>
         <Grid container spacing={3} sx={{ position: 'relative', zIndex: 1 }}>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <MemoryIcon sx={{ fontSize: 40 }} />
               <Box>
@@ -131,7 +173,7 @@ export default function Dashboard() {
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <SpeedIcon sx={{ fontSize: 40 }} />
               <Box>
@@ -140,7 +182,7 @@ export default function Dashboard() {
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <BuildIcon sx={{ fontSize: 40 }} />
               <Box>
@@ -151,6 +193,62 @@ export default function Dashboard() {
           </Grid>
         </Grid>
       </Paper>
+
+      {/* WebGPU Compatibility Notice */}
+      {webGPUSupported === false && (
+        <Alert 
+          severity="error" 
+          icon={<WarningIcon fontSize="large" />}
+          sx={{ mb: 4, borderRadius: 2 }}
+        >
+          <AlertTitle sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+            WebGPU Not Supported - Limited Functionality
+          </AlertTitle>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Your browser ({browserInfo.name} {browserInfo.version}) does not support WebGPU, which is required for optimal AI model performance. 
+            The application may not function correctly or may experience significantly reduced performance.
+          </Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+            Recommended Browsers with WebGPU Support:
+          </Typography>
+          <Stack spacing={1} sx={{ ml: 2 }}>
+            <Typography variant="body2">
+              • <strong>Chrome 113+</strong> or <strong>Edge 113+</strong> (Windows, macOS, Linux)
+            </Typography>
+            <Typography variant="body2">
+              • <strong>Chrome 121+</strong> on Android
+            </Typography>
+            <Typography variant="body2">
+              • Enable WebGPU in <code>chrome://flags/#enable-unsafe-webgpu</code> if needed
+            </Typography>
+          </Stack>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            <Link 
+              href="https://caniuse.com/webgpu" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              sx={{ fontWeight: 'bold' }}
+            >
+              Check WebGPU browser compatibility →
+            </Link>
+          </Typography>
+        </Alert>
+      )}
+
+      {webGPUSupported === true && (
+        <Alert 
+          severity="success" 
+          icon={<InfoIcon />}
+          sx={{ mb: 4, borderRadius: 2 }}
+        >
+          <AlertTitle sx={{ fontWeight: 'bold' }}>
+            WebGPU Enabled - Optimal Performance
+          </AlertTitle>
+          <Typography variant="body2">
+            Your browser supports WebGPU acceleration! AI models will run with optimal performance using GPU acceleration.
+          </Typography>
+        </Alert>
+      )}
 
       {/* Architecture Diagram */}
       <ArchitectureDiagram />
@@ -182,10 +280,7 @@ export default function Dashboard() {
               
               return (
                 <Grid 
-                  item 
-                  xs={12} 
-                  md={6} 
-                  lg={4} 
+                  size={{ xs: 12, md: 6, lg: 4 }}
                   key={task}
                   sx={{
                     display: 'flex',
@@ -371,7 +466,7 @@ export default function Dashboard() {
           </Typography>
         </Stack>
         <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <CodeIcon sx={{ color: 'white', fontSize: 28 }} />
               <Box>
@@ -384,7 +479,7 @@ export default function Dashboard() {
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <ComputerIcon sx={{ color: 'white', fontSize: 28 }} />
               <Box>
@@ -397,7 +492,7 @@ export default function Dashboard() {
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <ArchitectureIcon sx={{ color: 'white', fontSize: 28 }} />
               <Box>
@@ -410,7 +505,7 @@ export default function Dashboard() {
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <PsychologyIcon sx={{ color: 'white', fontSize: 28 }} />
               <Box>
@@ -423,7 +518,7 @@ export default function Dashboard() {
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <VisibilityIcon sx={{ color: 'white', fontSize: 28 }} />
               <Box>
@@ -436,7 +531,7 @@ export default function Dashboard() {
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <AutoAwesomeIcon sx={{ color: 'white', fontSize: 28 }} />
               <Box>
@@ -449,7 +544,7 @@ export default function Dashboard() {
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
               <ImageSearchIcon sx={{ color: 'white', fontSize: 28 }} />
               <Box>

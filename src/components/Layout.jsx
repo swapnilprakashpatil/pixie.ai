@@ -125,7 +125,7 @@ export default function Layout({ children }) {
       </Toolbar>
       <Divider />
       
-      <List sx={{ flex: 1, overflowY: 'auto', py: 2 }}>
+      <List sx={{ flex: 1, py: 2 }}>
         {Object.values(TASKS).map((task, index) => (
           <ListItem key={task} disablePadding sx={{ mb: 0.5, px: 1 }}>
             <ListItemButton

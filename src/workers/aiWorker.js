@@ -2,12 +2,41 @@
 // This provides real image enhancement without ONNX Runtime dependencies
 import * as ort from "onnxruntime-web";
 
+// Configure ONNX Runtime to suppress warnings
+ort.env.logLevel = "error"; // Only show errors, not warnings
+
 const pipelineCache = new Map();
 
 /**
  * Apply advanced image processing based on task type
  */
-async function processImageWithFilters(imageUrl, task) {
+async function processImageWithFilters(
+  imageUrl,
+  task,
+  modelId = null,
+  denoisingLevel = 85,
+  upscaleFactor = 4,
+  colorizationIntensity = 90,
+  colorizationSaturation = 80,
+  inpaintingGuidanceScale = 15,
+  inpaintingInferenceSteps = 40,
+  inpaintingStrength = 0.95,
+  objectDetectionConfidence = 0.35,
+  objectDetectionIOU = 0.5,
+  objectDetectionMaxDetections = 50,
+  poseEstimationConfidence = 0.3,
+  poseKeypointThreshold = 0.2,
+  poseMaxDetections = 10,
+  maskingEdgeThreshold = 0.3,
+  maskingSegmentationIntensity = 0.7,
+  maskingMorphologyStrength = 0.5,
+  styleTransferStyle = "picasso",
+  styleTransferIntensity = 0.8,
+  bgRemovalMethod = "ai-saliency",
+  bgRemovalThreshold = 0.5,
+  bgRemovalFeathering = 3,
+  bgRemovalOutputMode = "transparent"
+) {
   try {
     // Fetch the image as a blob
     const response = await fetch(imageUrl);
@@ -21,7 +50,12 @@ async function processImageWithFilters(imageUrl, task) {
 
     // Handle super-resolution (upscaling) separately
     if (task === "super-resolution") {
-      return await upscaleImage(imageBitmap, width * 2, height * 2);
+      return await upscaleImage(
+        imageBitmap,
+        width * upscaleFactor,
+        height * upscaleFactor,
+        upscaleFactor
+      );
     }
 
     // Create canvas and draw image
@@ -36,39 +70,125 @@ async function processImageWithFilters(imageUrl, task) {
     // Apply appropriate filter based on task
     switch (task) {
       case "denoising":
-        applyBilateralFilter(data, width, height);
+        applyBilateralFilter(data, width, height, denoisingLevel);
         ctx.putImageData(imageData, 0, 0);
         break;
       case "colorization":
-        enhanceColors(data, width, height);
+        enhanceColors(
+          data,
+          width,
+          height,
+          colorizationIntensity,
+          colorizationSaturation
+        );
         ctx.putImageData(imageData, 0, 0);
         break;
       case "inpainting":
-        applyEdgePreservingFilter(data, width, height);
+        console.log(
+          `🎨 Inpainting with guidance: ${inpaintingGuidanceScale}, steps: ${inpaintingInferenceSteps}, strength: ${inpaintingStrength}`
+        );
+        // Note: Full Stable Diffusion inpainting requires ONNX Runtime implementation
+        // For now, using edge-preserving filter as a placeholder
+        // TODO: Implement actual Stable Diffusion inpainting with parameters:
+        //   - guidance_scale: inpaintingGuidanceScale
+        //   - num_inference_steps: inpaintingInferenceSteps
+        //   - strength: inpaintingStrength
+        applyEdgePreservingFilter(data, width, height, inpaintingStrength);
         ctx.putImageData(imageData, 0, 0);
         break;
       case "object-detection":
-        // Use ONNX-based YOLO detection
-        await applyYOLODetection(ctx, imageBitmap, width, height);
-        break;
-        await applyObjectDetection(ctx, data, width, height);
+        // Use ONNX-based object detection (YOLO or DETR based on modelId)
+        console.log("🔍 Object Detection - Model ID:", modelId);
+        console.log("🔍 Model ID type:", typeof modelId);
+        console.log("🔍 Model ID value:", JSON.stringify(modelId));
+        console.log(
+          "🔍 Checking if includes detr-resnet:",
+          modelId && modelId.includes("detr-resnet")
+        );
+        try {
+          if (modelId && modelId.includes("detr-resnet")) {
+            console.log("✅ Using DETR detection");
+            await applyDETRDetection(
+              ctx,
+              imageBitmap,
+              width,
+              height,
+              modelId,
+              objectDetectionConfidence,
+              objectDetectionIOU,
+              objectDetectionMaxDetections
+            );
+          } else {
+            console.log("✅ Using YOLO detection (modelId:", modelId, ")");
+            await applyYOLODetection(
+              ctx,
+              imageBitmap,
+              width,
+              height,
+              objectDetectionConfidence,
+              objectDetectionIOU,
+              objectDetectionMaxDetections
+            );
+          }
+        } catch (error) {
+          console.error("❌ Object detection failed:", error);
+          self.postMessage({
+            type: "log",
+            data: {
+              type: "error",
+              message: `Object detection failed: ${error.message}`,
+            },
+          });
+          throw error;
+        }
         break;
       case "pose-estimation":
         // Draw on canvas directly, keep original image
-        await applyPoseEstimation(ctx, data, width, height);
+        await applyPoseEstimation(
+          ctx,
+          data,
+          width,
+          height,
+          poseEstimationConfidence,
+          poseKeypointThreshold,
+          poseMaxDetections
+        );
         break;
       case "image-masking":
-        applyImageMasking(data, width, height);
+        applyImageMasking(
+          data,
+          width,
+          height,
+          maskingEdgeThreshold,
+          maskingSegmentationIntensity,
+          maskingMorphologyStrength
+        );
         ctx.putImageData(imageData, 0, 0);
         break;
       case "style-transfer":
-        await applyStyleTransfer(ctx, data, width, height);
+        await applyStyleTransfer(
+          ctx,
+          data,
+          width,
+          height,
+          styleTransferStyle,
+          styleTransferIntensity
+        );
         break;
       case "ai-image-generation":
         await applyAIImageGeneration(ctx, data, width, height);
         break;
       case "background-removal":
-        await applyBackgroundRemoval(ctx, data, width, height);
+        await applyBackgroundRemoval(
+          ctx,
+          data,
+          width,
+          height,
+          bgRemovalMethod,
+          bgRemovalThreshold,
+          bgRemovalFeathering,
+          bgRemovalOutputMode
+        );
         break;
       case "image-to-sketch":
         applyImageToSketch(data, width, height);
@@ -92,22 +212,49 @@ async function processImageWithFilters(imageUrl, task) {
 /**
  * Bilateral filter for noise reduction
  */
-function applyBilateralFilter(data, width, height) {
-  const original = new Uint8ClampedArray(data);
-  const sigma_s = 5; // Spatial sigma
-  const sigma_r = 50; // Range sigma
+/**
+ * Apply aggressive bilateral filter for strong denoising
+ * Uses multiple passes and larger kernel for better noise removal
+ * @param {Uint8ClampedArray} data - Image data to process
+ * @param {number} width - Image width
+ * @param {number} height - Image height
+ * @param {number} denoisingLevel - Denoising strength (0-100, default 50)
+ */
+function applyBilateralFilter(data, width, height, denoisingLevel = 50) {
+  // If denoising is disabled (level 0), return immediately
+  if (denoisingLevel === 0) {
+    console.log("⏭️ Denoising disabled (level 0)");
+    return;
+  }
 
-  for (let y = 2; y < height - 2; y++) {
-    for (let x = 2; x < width - 2; x++) {
+  // Scale parameters based on denoising level (0-100)
+  // Level 0 = no denoising, Level 50 = medium, Level 100 = maximum
+  const scale = denoisingLevel / 50; // 0.0 to 2.0
+
+  const original = new Uint8ClampedArray(data);
+
+  // First pass - aggressive denoising
+  // Scale spatial and range sigma based on denoising level
+  const sigma_s1 = 4 + 4 * scale; // 4-12 based on level
+  const sigma_r1 = 40 + 35 * scale; // 40-110 based on level
+
+  console.log(
+    `🎨 Applying bilateral filter - Level: ${denoisingLevel}%, Sigma S1: ${sigma_s1.toFixed(
+      1
+    )}, Sigma R1: ${sigma_r1.toFixed(1)}`
+  );
+
+  for (let y = 4; y < height - 4; y++) {
+    for (let x = 4; x < width - 4; x++) {
       const idx = (y * width + x) * 4;
       let sumR = 0,
         sumG = 0,
         sumB = 0,
         totalWeight = 0;
 
-      // 5x5 kernel
-      for (let dy = -2; dy <= 2; dy++) {
-        for (let dx = -2; dx <= 2; dx++) {
+      // 9x9 kernel for first pass - more aggressive
+      for (let dy = -4; dy <= 4; dy++) {
+        for (let dx = -4; dx <= 4; dx++) {
           const nx = x + dx;
           const ny = y + dy;
           const nidx = (ny * width + nx) * 4;
@@ -115,7 +262,7 @@ function applyBilateralFilter(data, width, height) {
           // Spatial distance
           const spatialDist = Math.sqrt(dx * dx + dy * dy);
           const spatialWeight = Math.exp(
-            -(spatialDist * spatialDist) / (2 * sigma_s * sigma_s)
+            -(spatialDist * spatialDist) / (2 * sigma_s1 * sigma_s1)
           );
 
           // Color distance
@@ -125,7 +272,7 @@ function applyBilateralFilter(data, width, height) {
               Math.pow(original[idx + 2] - original[nidx + 2], 2)
           );
           const rangeWeight = Math.exp(
-            -(colorDist * colorDist) / (2 * sigma_r * sigma_r)
+            -(colorDist * colorDist) / (2 * sigma_r1 * sigma_r1)
           );
 
           const weight = spatialWeight * rangeWeight;
@@ -141,12 +288,104 @@ function applyBilateralFilter(data, width, height) {
       data[idx + 2] = sumB / totalWeight;
     }
   }
+
+  // Second pass - median filter (only if level >= 33)
+  if (denoisingLevel >= 33) {
+    const tempData = new Uint8ClampedArray(data);
+    for (let y = 2; y < height - 2; y++) {
+      for (let x = 2; x < width - 2; x++) {
+        const idx = (y * width + x) * 4;
+        const neighborsR = [];
+        const neighborsG = [];
+        const neighborsB = [];
+
+        // 5x5 neighborhood
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const nidx = ((y + dy) * width + (x + dx)) * 4;
+            neighborsR.push(tempData[nidx]);
+            neighborsG.push(tempData[nidx + 1]);
+            neighborsB.push(tempData[nidx + 2]);
+          }
+        }
+
+        // Get median values
+        neighborsR.sort((a, b) => a - b);
+        neighborsG.sort((a, b) => a - b);
+        neighborsB.sort((a, b) => a - b);
+
+        const median = Math.floor(neighborsR.length / 2);
+        data[idx] = neighborsR[median];
+        data[idx + 1] = neighborsG[median];
+        data[idx + 2] = neighborsB[median];
+      }
+    }
+  }
+
+  // Third pass - light bilateral filter to smooth the result (only if level >= 50)
+  if (denoisingLevel >= 50) {
+    const smoothed = new Uint8ClampedArray(data);
+    const sigma_s2 = 2 + scale * 1; // 2-4 based on level
+    const sigma_r2 = 30 + scale * 10; // 30-50 based on level
+
+    for (let y = 3; y < height - 3; y++) {
+      for (let x = 3; x < width - 3; x++) {
+        const idx = (y * width + x) * 4;
+        let sumR = 0,
+          sumG = 0,
+          sumB = 0,
+          totalWeight = 0;
+
+        // 7x7 kernel for final smoothing
+        for (let dy = -3; dy <= 3; dy++) {
+          for (let dx = -3; dx <= 3; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            const nidx = (ny * width + nx) * 4;
+
+            const spatialDist = Math.sqrt(dx * dx + dy * dy);
+            const spatialWeight = Math.exp(
+              -(spatialDist * spatialDist) / (2 * sigma_s2 * sigma_s2)
+            );
+
+            const colorDist = Math.sqrt(
+              Math.pow(smoothed[idx] - smoothed[nidx], 2) +
+                Math.pow(smoothed[idx + 1] - smoothed[nidx + 1], 2) +
+                Math.pow(smoothed[idx + 2] - smoothed[nidx + 2], 2)
+            );
+            const rangeWeight = Math.exp(
+              -(colorDist * colorDist) / (2 * sigma_r2 * sigma_r2)
+            );
+
+            const weight = spatialWeight * rangeWeight;
+            sumR += smoothed[nidx] * weight;
+            sumG += smoothed[nidx + 1] * weight;
+            sumB += smoothed[nidx + 2] * weight;
+            totalWeight += weight;
+          }
+        }
+
+        data[idx] = sumR / totalWeight;
+        data[idx + 1] = sumG / totalWeight;
+        data[idx + 2] = sumB / totalWeight;
+      }
+    }
+  }
 }
 
 /**
  * Upscale image using bicubic interpolation
+ * @param {ImageBitmap} imageBitmap - Source image
+ * @param {number} newWidth - Target width
+ * @param {number} newHeight - Target height
+ * @param {number} upscaleFactor - Upscaling factor (1-4)
  */
-async function upscaleImage(imageBitmap, newWidth, newHeight) {
+async function upscaleImage(
+  imageBitmap,
+  newWidth,
+  newHeight,
+  upscaleFactor = 2
+) {
   const canvas = new OffscreenCanvas(newWidth, newHeight);
   const ctx = canvas.getContext("2d");
 
@@ -157,9 +396,9 @@ async function upscaleImage(imageBitmap, newWidth, newHeight) {
   // Draw upscaled image
   ctx.drawImage(imageBitmap, 0, 0, newWidth, newHeight);
 
-  // Apply unsharp mask for sharpening
+  // Apply unsharp mask for sharpening (scale strength based on upscale factor)
   const imageData = ctx.getImageData(0, 0, newWidth, newHeight);
-  applyUnsharpMask(imageData.data, newWidth, newHeight);
+  applyUnsharpMask(imageData.data, newWidth, newHeight, upscaleFactor);
   ctx.putImageData(imageData, 0, 0);
 
   const blob = await canvas.convertToBlob({ type: "image/png" });
@@ -168,10 +407,16 @@ async function upscaleImage(imageBitmap, newWidth, newHeight) {
 
 /**
  * Unsharp mask for sharpening
+ * @param {Uint8ClampedArray} data - Image data
+ * @param {number} width - Image width
+ * @param {number} height - Image height
+ * @param {number} upscaleFactor - Upscaling factor to adjust sharpening strength
  */
-function applyUnsharpMask(data, width, height) {
+function applyUnsharpMask(data, width, height, upscaleFactor = 2) {
   const original = new Uint8ClampedArray(data);
-  const amount = 1.5;
+  // Scale sharpening amount based on upscale factor
+  // Higher upscale = more sharpening needed (1x: 1.0, 2x: 1.5, 3x: 2.0, 4x: 2.5)
+  const amount = 0.5 + upscaleFactor * 0.5;
   const radius = 1;
 
   for (let y = radius; y < height - radius; y++) {
@@ -202,7 +447,23 @@ function applyUnsharpMask(data, width, height) {
 /**
  * Enhance colors (vibrance and saturation) or colorize grayscale images
  */
-function enhanceColors(data, width, height) {
+/**
+ * Enhanced color processing with adjustable intensity and saturation
+ * @param {Uint8ClampedArray} data - Image data
+ * @param {number} width - Image width
+ * @param {number} height - Image height
+ * @param {number} intensity - Colorization intensity 0-100 (default 80)
+ * @param {number} saturation - Color saturation 0-100 (default 70)
+ */
+function enhanceColors(data, width, height, intensity = 80, saturation = 70) {
+  // Convert parameters to usable scales
+  const intensityScale = intensity / 100; // 0.0 to 1.0
+  const saturationScale = saturation / 100; // 0.0 to 1.0
+
+  console.log(
+    `🎨 Colorization settings - Intensity: ${intensity}%, Saturation: ${saturation}%`
+  );
+
   // First, check if image is grayscale (B&W) with tolerance
   let isGrayscale = true;
   let grayscaleCount = 0;
@@ -449,6 +710,22 @@ function enhanceColors(data, width, height) {
         b = b * 0.7 + grayVal * 0.3;
       }
 
+      // Apply intensity and saturation scaling
+      // Intensity: blend between grayscale and colored (0 = gray, 100 = full color)
+      // Saturation: adjust color vividness (0 = desaturate, 100 = max saturation)
+      const grayValue = gray;
+
+      // First apply intensity (how much color vs grayscale)
+      r = grayValue + (r - grayValue) * intensityScale;
+      g = grayValue + (g - grayValue) * intensityScale;
+      b = grayValue + (b - grayValue) * intensityScale;
+
+      // Then apply saturation scaling
+      const colorGray = (r + g + b) / 3;
+      r = colorGray + (r - colorGray) * saturationScale;
+      g = colorGray + (g - colorGray) * saturationScale;
+      b = colorGray + (b - colorGray) * saturationScale;
+
       // Apply with clamping
       data[i] = Math.max(0, Math.min(255, Math.round(r)));
       data[i + 1] = Math.max(0, Math.min(255, Math.round(g)));
@@ -502,8 +779,10 @@ function enhanceColors(data, width, height) {
 
     console.log("✅ Photorealistic colorization complete");
   } else {
-    // For color images, enhance existing colors
-    console.log("🎨 Detected color image - enhancing saturation");
+    // For color images, enhance existing colors using saturation parameter
+    console.log(
+      `🎨 Detected color image - enhancing saturation by ${saturation}%`
+    );
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
@@ -526,8 +805,9 @@ function enhanceColors(data, width, height) {
         h = Math.round(h * 60);
         if (h < 0) h += 360;
 
-        // Increase saturation
-        const newS = Math.min(1, s * 1.4);
+        // Increase saturation based on parameter (0-100 maps to 0.5-2.0x multiplier)
+        const satMultiplier = 0.5 + saturationScale * 1.5;
+        const newS = Math.min(1, s * satMultiplier);
 
         // Convert back to RGB
         const c = (1 - Math.abs(2 * l - 1)) * newS;
@@ -590,8 +870,12 @@ function enhanceColors(data, width, height) {
 /**
  * Advanced inpainting - detects and repairs scratches, tears, and damage
  */
-function applyEdgePreservingFilter(data, width, height) {
-  console.log("🎨 Starting AI-powered inpainting - detecting damage...");
+function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
+  console.log(
+    `🎨 Starting AI-powered inpainting - strength: ${Math.round(
+      strength * 100
+    )}%`
+  );
 
   const original = new Uint8ClampedArray(data);
   const damageMap = new Uint8Array(width * height);
@@ -863,6 +1147,33 @@ function applyEdgePreservingFilter(data, width, height) {
     }
   }
 
+  // Step 5: Blend with original based on strength parameter
+  if (strength < 1.0) {
+    console.log(
+      `🎨 Phase 5: Blending inpainted result with original (${Math.round(
+        strength * 100
+      )}% strength)`
+    );
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const pixelIdx = y * width + x;
+        if (expandedMap[pixelIdx] === 1) {
+          const idx = (y * width + x) * 4;
+          // Blend: result = strength * inpainted + (1 - strength) * original
+          data[idx] = Math.round(
+            data[idx] * strength + original[idx] * (1 - strength)
+          );
+          data[idx + 1] = Math.round(
+            data[idx + 1] * strength + original[idx + 1] * (1 - strength)
+          );
+          data[idx + 2] = Math.round(
+            data[idx + 2] * strength + original[idx + 2] * (1 - strength)
+          );
+        }
+      }
+    }
+  }
+
   console.log("✅ Inpainting complete - scratches and damage repaired!");
 }
 
@@ -897,12 +1208,17 @@ function enhanceImage(data) {
 async function loadModel(modelId, task, messageId) {
   const cacheKey = `${modelId}-${task}`;
 
+  console.log(
+    `🔧 loadModel called with modelId: "${modelId}", task: "${task}"`
+  );
+  console.log(`🔧 Cache key: "${cacheKey}"`);
+
   if (pipelineCache.has(cacheKey)) {
     console.log(`✅ Model ${modelId} already loaded from cache`);
     return true;
   }
 
-  console.log(`📥 Preparing ${task} processor...`);
+  console.log(`📥 Preparing ${task} processor for model ${modelId}...`);
 
   // Simulate loading with progress
   for (let i = 0; i <= 100; i += 10) {
@@ -922,16 +1238,70 @@ async function loadModel(modelId, task, messageId) {
 /**
  * Process an image
  */
-async function processImage(imageUrl, modelId, task) {
+async function processImage(
+  imageUrl,
+  modelId,
+  task,
+  denoisingLevel = 85,
+  upscaleFactor = 4,
+  colorizationIntensity = 90,
+  colorizationSaturation = 80,
+  inpaintingGuidanceScale = 15,
+  inpaintingInferenceSteps = 40,
+  inpaintingStrength = 0.95,
+  objectDetectionConfidence = 0.35,
+  objectDetectionIOU = 0.5,
+  objectDetectionMaxDetections = 50,
+  poseEstimationConfidence = 0.3,
+  poseKeypointThreshold = 0.2,
+  poseMaxDetections = 10,
+  maskingEdgeThreshold = 0.3,
+  maskingSegmentationIntensity = 0.7,
+  maskingMorphologyStrength = 0.5,
+  styleTransferStyle = "picasso",
+  styleTransferIntensity = 0.8,
+  bgRemovalMethod = "ai-saliency",
+  bgRemovalThreshold = 0.5,
+  bgRemovalFeathering = 3,
+  bgRemovalOutputMode = "transparent"
+) {
   const cacheKey = `${modelId}-${task}`;
 
   if (!pipelineCache.has(cacheKey)) {
     throw new Error("Model not loaded. Please load the model first.");
   }
 
-  console.log(`🎨 Processing image with ${task} filter`);
+  console.log(
+    `🎨 Processing image with ${task} using model ${modelId}, denoising: ${denoisingLevel}, upscale: ${upscaleFactor}x, colorization: ${colorizationIntensity}/${colorizationSaturation}, inpainting: ${inpaintingGuidanceScale}/${inpaintingInferenceSteps}/${inpaintingStrength}, detection: ${objectDetectionConfidence}/${objectDetectionIOU}/${objectDetectionMaxDetections}, pose: ${poseEstimationConfidence}/${poseKeypointThreshold}/${poseMaxDetections}, masking: ${maskingEdgeThreshold}/${maskingSegmentationIntensity}/${maskingMorphologyStrength}, style: ${styleTransferStyle}/${styleTransferIntensity}, bgRemoval: ${bgRemovalMethod}/${bgRemovalThreshold}/${bgRemovalFeathering}/${bgRemovalOutputMode}`
+  );
 
-  const result = await processImageWithFilters(imageUrl, task);
+  const result = await processImageWithFilters(
+    imageUrl,
+    task,
+    modelId,
+    denoisingLevel,
+    upscaleFactor,
+    colorizationIntensity,
+    colorizationSaturation,
+    inpaintingGuidanceScale,
+    inpaintingInferenceSteps,
+    inpaintingStrength,
+    objectDetectionConfidence,
+    objectDetectionIOU,
+    objectDetectionMaxDetections,
+    poseEstimationConfidence,
+    poseKeypointThreshold,
+    poseMaxDetections,
+    maskingEdgeThreshold,
+    maskingSegmentationIntensity,
+    maskingMorphologyStrength,
+    styleTransferStyle,
+    styleTransferIntensity,
+    bgRemovalMethod,
+    bgRemovalThreshold,
+    bgRemovalFeathering,
+    bgRemovalOutputMode
+  );
 
   console.log("✅ Image processing complete");
   return result;
@@ -940,8 +1310,18 @@ async function processImage(imageUrl, modelId, task) {
 /**
  * YOLO-based Object Detection using ONNX Runtime
  */
-async function applyYOLODetection(ctx, imageBitmap, width, height) {
-  console.log("🎯 Loading YOLOv11 ONNX model for object detection...");
+async function applyYOLODetection(
+  ctx,
+  imageBitmap,
+  width,
+  height,
+  confidenceThreshold = 0.25,
+  iouThreshold = 0.5,
+  maxDetections = 50
+) {
+  console.log(
+    `🎯 Loading YOLOv11 ONNX model for object detection (conf: ${confidenceThreshold}, iou: ${iouThreshold}, max: ${maxDetections})...`
+  );
 
   try {
     // Download and load YOLOv11n model (single-file ONNX)
@@ -999,7 +1379,10 @@ async function applyYOLODetection(ctx, imageBitmap, width, height) {
       output.dims,
       width,
       height,
-      modelSize
+      modelSize,
+      confidenceThreshold,
+      iouThreshold,
+      maxDetections
     );
 
     console.log(`✅ YOLOv11 detected ${detections.length} objects`);
@@ -1025,14 +1408,267 @@ async function applyYOLODetection(ctx, imageBitmap, width, height) {
 }
 
 /**
+ * DETR-based Object Detection using ONNX Runtime
+ */
+async function applyDETRDetection(
+  ctx,
+  imageBitmap,
+  width,
+  height,
+  modelId,
+  confidenceThreshold = 0.25,
+  iouThreshold = 0.5,
+  maxDetections = 50
+) {
+  console.log(
+    `🎯 Loading DETR (${modelId}) ONNX model for object detection (conf: ${confidenceThreshold}, iou: ${iouThreshold}, max: ${maxDetections})...`
+  );
+
+  try {
+    // Use the Hugging Face model URL for DETR ResNet-50
+    const modelUrl = `https://huggingface.co/${modelId}/resolve/main/onnx/model.onnx`;
+
+    console.log(`📥 Downloading DETR model from ${modelUrl}...`);
+    const session = await ort.InferenceSession.create(modelUrl, {
+      executionProviders: ["wasm"],
+    });
+
+    console.log("🔄 Preprocessing image for DETR...");
+
+    // DETR expects 64x64 input size based on the model requirements
+    const modelSize = 64;
+    const tempCanvas = new OffscreenCanvas(modelSize, modelSize);
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCtx.drawImage(imageBitmap, 0, 0, modelSize, modelSize);
+
+    const imageData = tempCtx.getImageData(0, 0, modelSize, modelSize);
+    const pixels = imageData.data;
+
+    // Convert to RGB float32 tensor [1, 3, 800, 800] with normalization
+    const input = new Float32Array(1 * 3 * modelSize * modelSize);
+    const mean = [0.485, 0.456, 0.406];
+    const std = [0.229, 0.224, 0.225];
+
+    for (let i = 0; i < pixels.length; i += 4) {
+      const pixelIndex = i / 4;
+      input[pixelIndex] = (pixels[i] / 255.0 - mean[0]) / std[0]; // R
+      input[pixelIndex + modelSize * modelSize] =
+        (pixels[i + 1] / 255.0 - mean[1]) / std[1]; // G
+      input[pixelIndex + modelSize * modelSize * 2] =
+        (pixels[i + 2] / 255.0 - mean[2]) / std[2]; // B
+    }
+
+    const tensor = new ort.Tensor("float32", input, [
+      1,
+      3,
+      modelSize,
+      modelSize,
+    ]);
+
+    // Create pixel_mask tensor (all 1s indicating valid pixels)
+    // Must use BigInt64Array for int64 tensor type
+    const pixelMaskSize = 1 * modelSize * modelSize;
+    const pixelMask = new BigInt64Array(pixelMaskSize);
+    for (let i = 0; i < pixelMaskSize; i++) {
+      pixelMask[i] = BigInt(1);
+    }
+    const maskTensor = new ort.Tensor("int64", pixelMask, [
+      1,
+      modelSize,
+      modelSize,
+    ]);
+
+    console.log("🔍 Running DETR inference...");
+    const feeds = { pixel_values: tensor, pixel_mask: maskTensor };
+    const results = await session.run(feeds);
+
+    console.log("📦 DETR output keys:", Object.keys(results));
+
+    // DETR outputs logits and boxes
+    const logits = results.logits || results.pred_logits;
+    const boxes = results.pred_boxes || results.boxes;
+
+    if (!logits || !boxes) {
+      throw new Error("DETR model output format not recognized");
+    }
+
+    console.log(`📦 DETR logits shape: ${logits.dims.join("x")}`);
+    console.log(`📦 DETR boxes shape: ${boxes.dims.join("x")}`);
+
+    const detections = processDETROutput(
+      logits.data,
+      boxes.data,
+      logits.dims,
+      boxes.dims,
+      width,
+      height,
+      modelSize,
+      confidenceThreshold,
+      maxDetections
+    );
+
+    console.log(`✅ DETR detected ${detections.length} objects`);
+    if (detections.length > 0) {
+      console.log(
+        "Detected classes:",
+        detections
+          .map((d) => `${d.className} (${(d.confidence * 100).toFixed(0)}%)`)
+          .join(", ")
+      );
+    }
+
+    // Draw detections
+    drawDetections(ctx, detections);
+  } catch (error) {
+    console.error("❌ DETR detection failed:", error);
+    // Log error to event logs
+    self.postMessage({
+      type: "log",
+      data: {
+        type: "error",
+        message: `DETR detection failed: ${error.message}`,
+      },
+    });
+    // Log fallback warning
+    self.postMessage({
+      type: "log",
+      data: {
+        type: "warning",
+        message: `Falling back to YOLOv11 model for object detection`,
+      },
+    });
+    console.log("⚠️ Falling back to YOLO detection");
+
+    // Fallback to YOLO
+    await applyYOLODetection(ctx, imageBitmap, width, height);
+  }
+}
+
+/**
+ * Process DETR output tensor
+ */
+function processDETROutput(
+  logitsData,
+  boxesData,
+  logitsDims,
+  boxesDims,
+  imgWidth,
+  imgHeight,
+  modelSize,
+  confidenceThreshold = 0.25,
+  maxDetections = 50
+) {
+  const detections = [];
+
+  // DETR output format: logits [1, num_queries, num_classes], boxes [1, num_queries, 4]
+  const numQueries = logitsDims[1];
+  const numClasses = logitsDims[2] - 1; // Subtract 1 for "no object" class
+
+  console.log(
+    `Processing DETR with ${numQueries} queries and ${numClasses} classes (conf: ${confidenceThreshold}, max: ${maxDetections})`
+  );
+
+  // Common objects to prioritize (cars, persons, trucks, etc.)
+  const priorityClasses = [
+    "car",
+    "person",
+    "truck",
+    "bus",
+    "motorcycle",
+    "bicycle",
+  ];
+
+  for (let i = 0; i < numQueries; i++) {
+    // Get class scores for this query (skip last class which is "no object")
+    let maxScore = -Infinity;
+    let classId = 0;
+
+    for (let c = 0; c < numClasses; c++) {
+      const score = logitsData[i * (numClasses + 1) + c];
+      if (score > maxScore) {
+        maxScore = score;
+        classId = c;
+      }
+    }
+
+    // Apply softmax to get probability
+    const expScore = Math.exp(maxScore);
+    const expSum =
+      Math.exp(maxScore) +
+      Math.exp(logitsData[i * (numClasses + 1) + numClasses]);
+    const confidence = expScore / expSum;
+
+    const className = COCO_CLASSES[classId] || `class_${classId}`;
+
+    // Filter out common false positive classes that don't appear in typical scenes
+    const filterClasses = ["boat", "surfboard", "skis", "snowboard"];
+
+    // Apply threshold and filter
+    if (
+      confidence > confidenceThreshold &&
+      !filterClasses.includes(className)
+    ) {
+      console.log(
+        `DETR detection: ${className} with confidence ${confidence.toFixed(3)}`
+      );
+
+      // Get box coordinates [cx, cy, w, h] normalized to [0, 1]
+      const cx = boxesData[i * 4];
+      const cy = boxesData[i * 4 + 1];
+      const w = boxesData[i * 4 + 2];
+      const h = boxesData[i * 4 + 3];
+
+      // Convert to pixel coordinates
+      const x1 = (cx - w / 2) * imgWidth;
+      const y1 = (cy - h / 2) * imgHeight;
+      const x2 = (cx + w / 2) * imgWidth;
+      const y2 = (cy + h / 2) * imgHeight;
+
+      detections.push({
+        x: Math.max(0, x1),
+        y: Math.max(0, y1),
+        w: Math.min(imgWidth - x1, x2 - x1),
+        h: Math.min(imgHeight - y1, y2 - y1),
+        className: className,
+        confidence: confidence,
+      });
+    }
+  }
+
+  // Sort by confidence and limit to maxDetections
+  const limited = detections
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, maxDetections);
+
+  if (limited.length < detections.length) {
+    console.log(
+      `Limited DETR detections to top ${limited.length} (from ${detections.length})`
+    );
+  }
+
+  return limited;
+}
+
+/**
  * Process YOLO output tensor and apply NMS
  */
-function processYOLOOutput(output, dims, imgWidth, imgHeight, modelSize) {
+function processYOLOOutput(
+  output,
+  dims,
+  imgWidth,
+  imgHeight,
+  modelSize,
+  confidenceThreshold = 0.25,
+  iouThreshold = 0.5,
+  maxDetections = 50
+) {
   const detections = [];
-  const confidenceThreshold = 0.2; // Lower threshold to catch more detections
-  const iouThreshold = 0.45;
 
-  console.log("Processing YOLO output with dims:", dims);
+  console.log(
+    `Processing YOLO output with dims: ${dims.join(
+      "x"
+    )} (conf: ${confidenceThreshold}, iou: ${iouThreshold}, max: ${maxDetections})`
+  );
 
   // YOLOv11 output can be [1, 84, 8400] or [1, 8400, 84]
   let numDetections,
@@ -1128,7 +1764,18 @@ function processYOLOOutput(output, dims, imgWidth, imgHeight, modelSize) {
   const filtered = applyNMS(detections, iouThreshold);
   console.log(`${filtered.length} detections after NMS`);
 
-  return filtered;
+  // Apply max detections limit (keep top N by confidence)
+  const limited = filtered
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, maxDetections);
+
+  if (limited.length < filtered.length) {
+    console.log(
+      `Limited to top ${limited.length} detections (from ${filtered.length})`
+    );
+  }
+
+  return limited;
 }
 
 /**
@@ -1400,8 +2047,18 @@ async function applyObjectDetection(ctx, data, width, height) {
 /**
  * Pose Estimation - detect body keypoints
  */
-async function applyPoseEstimation(ctx, data, width, height) {
-  console.log("🧍 Applying pose estimation...");
+async function applyPoseEstimation(
+  ctx,
+  data,
+  width,
+  height,
+  poseEstimationConfidence = 0.3,
+  poseKeypointThreshold = 0.2,
+  poseMaxDetections = 10
+) {
+  console.log(
+    `🧍 Applying pose estimation (confidence: ${poseEstimationConfidence}, keypoint threshold: ${poseKeypointThreshold}, max: ${poseMaxDetections})...`
+  );
 
   const edgeMap = detectEdges(data, width, height);
   // Detect potential body regions using edge and skin tone detection
@@ -1416,12 +2073,21 @@ async function applyPoseEstimation(ctx, data, width, height) {
     return;
   }
 
+  // Limit to max detections
+  bodyRegions = bodyRegions.slice(0, poseMaxDetections);
+
   // For each detected person, estimate keypoints
   ctx.lineWidth = 4;
 
   bodyRegions.forEach((region, personIndex) => {
     // Estimate 17 keypoints (COCO format) using body profile analysis
-    const keypoints = estimateKeypoints(region, data, width, height);
+    const keypoints = estimateKeypoints(
+      region,
+      data,
+      width,
+      height,
+      poseKeypointThreshold
+    );
 
     // Draw skeleton connections with gradient effect
     const connections = [
@@ -1532,34 +2198,73 @@ async function applyPoseEstimation(ctx, data, width, height) {
 /**
  * Image Masking - various segmentation techniques
  */
-function applyImageMasking(data, width, height) {
-  console.log("🎭 Applying image masking techniques...");
+function applyImageMasking(
+  data,
+  width,
+  height,
+  edgeThreshold = 0.3,
+  segmentationIntensity = 0.7,
+  morphologyStrength = 0.5
+) {
+  console.log(
+    `🎭 Applying image masking (edge: ${edgeThreshold}, segmentation: ${segmentationIntensity}, morphology: ${morphologyStrength})...`
+  );
 
   // Create composite mask with multiple techniques
-  const cannyEdges = cannyEdgeDetection(data, width, height);
-  const thresholdMask = adaptiveThreshold(data, width, height);
+  const cannyEdges = cannyEdgeDetectionWithThreshold(
+    data,
+    width,
+    height,
+    edgeThreshold
+  );
+  const thresholdMask = adaptiveThresholdWithIntensity(
+    data,
+    width,
+    height,
+    segmentationIntensity
+  );
 
-  // Combine masks for visualization
+  // Apply morphological operations based on strength
+  const morphologicalEdges = applyMorphology(
+    cannyEdges,
+    width,
+    height,
+    morphologyStrength
+  );
+  const morphologicalMask = applyMorphology(
+    thresholdMask,
+    width,
+    height,
+    morphologyStrength
+  );
+
+  // Combine masks for visualization with intensity-based blending
   for (let i = 0; i < data.length; i += 4) {
     const pixelIndex = i / 4;
-    const edge = cannyEdges[pixelIndex];
-    const threshold = thresholdMask[pixelIndex];
+    const edge = morphologicalEdges[pixelIndex];
+    const threshold = morphologicalMask[pixelIndex];
 
     if (edge > 128) {
-      // Show edges in cyan
+      // Show edges in cyan with intensity-based brightness
+      const brightness = 155 + segmentationIntensity * 100;
       data[i] = 0;
-      data[i + 1] = 255;
-      data[i + 2] = 255;
+      data[i + 1] = Math.min(255, brightness);
+      data[i + 2] = Math.min(255, brightness);
     } else if (threshold > 128) {
-      // Show thresholded regions with original color tinted
-      data[i] = Math.min(255, data[i] * 1.2);
-      data[i + 1] = Math.min(255, data[i + 1] * 0.8);
-      data[i + 2] = Math.min(255, data[i + 2] * 1.2);
+      // Show thresholded regions with intensity-controlled tinting
+      const tintStrength = 0.8 + segmentationIntensity * 0.4;
+      data[i] = Math.min(255, data[i] * tintStrength);
+      data[i + 1] = Math.min(
+        255,
+        data[i + 1] * (1 - segmentationIntensity * 0.2)
+      );
+      data[i + 2] = Math.min(255, data[i + 2] * tintStrength);
     } else {
-      // Darken background
-      data[i] *= 0.4;
-      data[i + 1] *= 0.4;
-      data[i + 2] *= 0.4;
+      // Darken background based on segmentation intensity
+      const darkenFactor = 0.6 - segmentationIntensity * 0.4;
+      data[i] *= darkenFactor;
+      data[i + 1] *= darkenFactor;
+      data[i + 2] *= darkenFactor;
     }
   }
 
@@ -2859,7 +3564,13 @@ function edgeCoverageHorizontal(edgeMap, width, y, xStart, xEnd, step) {
 /**
  * Helper: Estimate keypoints for a body region
  */
-function estimateKeypoints(region, data, width, height) {
+function estimateKeypoints(
+  region,
+  data,
+  width,
+  height,
+  keypointThreshold = 0.2
+) {
   const w = Math.max(10, region.width ?? region.w ?? region.bounds?.w ?? 0);
   const h = Math.max(10, region.height ?? region.h ?? region.bounds?.h ?? 0);
   const centerX = region.centerX ?? (region.x ?? region.bounds?.x ?? 0) + w / 2;
@@ -2870,7 +3581,7 @@ function estimateKeypoints(region, data, width, height) {
 
   // Fallback to geometric estimation if not enough information
   if (profile.length < 8) {
-    return legacyKeypointEstimate(region, width, height);
+    return legacyKeypointEstimate(region, width, height, keypointThreshold);
   }
 
   const keypoints = [];
@@ -2885,6 +3596,9 @@ function estimateKeypoints(region, data, width, height) {
       0.4,
       0.98
     );
+
+    // Filter keypoints below threshold
+    if (confidence < keypointThreshold) return null;
 
     return { x, y, confidence, name };
   };
@@ -2911,14 +3625,24 @@ function estimateKeypoints(region, data, width, height) {
 
   // Replace any missing keypoints with fallback estimation
   if (points.some((p) => !p)) {
-    const fallback = legacyKeypointEstimate(region, width, height);
+    const fallback = legacyKeypointEstimate(
+      region,
+      width,
+      height,
+      keypointThreshold
+    );
     return points.map((point, idx) => point || fallback[idx]);
   }
 
   return points;
 }
 
-function legacyKeypointEstimate(region, width, height) {
+function legacyKeypointEstimate(
+  region,
+  width,
+  height,
+  keypointThreshold = 0.2
+) {
   const w = Math.max(10, region.width ?? region.w ?? region.bounds?.w ?? 0);
   const h = Math.max(10, region.height ?? region.h ?? region.bounds?.h ?? 0);
   const centerX = region.centerX ?? (region.x ?? region.bounds?.x ?? 0) + w / 2;
@@ -2945,12 +3669,18 @@ function legacyKeypointEstimate(region, width, height) {
   ];
 
   template.forEach((point) => {
-    fallback.push({
-      x: Math.max(0, Math.min(width, point.x)),
-      y: Math.max(0, Math.min(height, point.y)),
-      confidence: 0.55,
-      name: point.name,
-    });
+    const confidence = 0.55;
+    // Filter keypoints below threshold
+    if (confidence >= keypointThreshold) {
+      fallback.push({
+        x: Math.max(0, Math.min(width, point.x)),
+        y: Math.max(0, Math.min(height, point.y)),
+        confidence: confidence,
+        name: point.name,
+      });
+    } else {
+      fallback.push(null); // Below threshold
+    }
   });
 
   return fallback;
@@ -3149,6 +3879,31 @@ function cannyEdgeDetection(data, width, height) {
 }
 
 /**
+ * Canny edge detection with configurable threshold
+ */
+function cannyEdgeDetectionWithThreshold(data, width, height, threshold = 0.3) {
+  const edges = detectEdges(data, width, height);
+  const result = new Uint8Array(width * height);
+
+  // Scale thresholds based on parameter (0.1-0.9 maps to sensitivity)
+  // Lower threshold = more sensitive = lower values needed
+  const baseHigh = 200;
+  const baseLow = 60;
+  const highThreshold = baseHigh * (1 - threshold * 0.5); // More sensitive at low threshold
+  const lowThreshold = baseLow * (1 - threshold * 0.6);
+
+  for (let i = 0; i < edges.length; i++) {
+    if (edges[i] > highThreshold) {
+      result[i] = 255;
+    } else if (edges[i] > lowThreshold) {
+      result[i] = 128;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Helper: Adaptive threshold for segmentation
  */
 function adaptiveThreshold(data, width, height) {
@@ -3189,47 +3944,173 @@ function adaptiveThreshold(data, width, height) {
 }
 
 /**
+ * Adaptive threshold with configurable intensity
+ */
+function adaptiveThresholdWithIntensity(data, width, height, intensity = 0.7) {
+  const result = new Uint8Array(width * height);
+  // Increase block size with intensity for stronger segmentation
+  const blockSize = Math.floor(10 + intensity * 20);
+  // Adjust bias based on intensity
+  const bias = 5 + intensity * 15;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let sum = 0;
+      let count = 0;
+
+      for (
+        let by = Math.max(0, y - blockSize);
+        by < Math.min(height, y + blockSize);
+        by++
+      ) {
+        for (
+          let bx = Math.max(0, x - blockSize);
+          bx < Math.min(width, x + blockSize);
+          bx++
+        ) {
+          const idx = (by * width + bx) * 4;
+          sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          count++;
+        }
+      }
+
+      const localMean = sum / count;
+      const idx = (y * width + x) * 4;
+      const pixelValue = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+
+      result[y * width + x] = pixelValue > localMean - bias ? 255 : 0;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Apply morphological operations (erosion/dilation) based on strength
+ */
+function applyMorphology(mask, width, height, strength = 0.5) {
+  if (strength < 0.15) {
+    // Very light morphology - return as is
+    return mask;
+  }
+
+  const result = new Uint8Array(mask.length);
+  // Kernel size based on strength (1-5 pixels)
+  const kernelSize = Math.floor(1 + strength * 4);
+
+  // Apply erosion first to remove noise
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let minVal = 255;
+
+      for (let ky = -kernelSize; ky <= kernelSize; ky++) {
+        for (let kx = -kernelSize; kx <= kernelSize; kx++) {
+          const ny = Math.max(0, Math.min(height - 1, y + ky));
+          const nx = Math.max(0, Math.min(width - 1, x + kx));
+          minVal = Math.min(minVal, mask[ny * width + nx]);
+        }
+      }
+
+      result[y * width + x] = minVal;
+    }
+  }
+
+  // Apply dilation to restore edges
+  const dilated = new Uint8Array(mask.length);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let maxVal = 0;
+
+      for (let ky = -kernelSize; ky <= kernelSize; ky++) {
+        for (let kx = -kernelSize; kx <= kernelSize; kx++) {
+          const ny = Math.max(0, Math.min(height - 1, y + ky));
+          const nx = Math.max(0, Math.min(width - 1, x + kx));
+          maxVal = Math.max(maxVal, result[ny * width + nx]);
+        }
+      }
+
+      dilated[y * width + x] = maxVal;
+    }
+  }
+
+  return dilated;
+}
+
+/**
  * Apply Neural Style Transfer (VGG19-inspired)
  * Transforms images into artistic styles
  */
-async function applyStyleTransfer(ctx, data, width, height) {
-  // Randomly select a style for variety
-  const styles = ["oil-painting", "watercolor", "van-gogh", "picasso", "anime"];
-  const selectedStyle = styles[Math.floor(Math.random() * styles.length)];
+async function applyStyleTransfer(
+  ctx,
+  data,
+  width,
+  height,
+  selectedStyle = "picasso",
+  intensity = 0.8
+) {
+  console.log(
+    `🎨 Applying ${selectedStyle} style transfer (intensity: ${Math.round(
+      intensity * 100
+    )}%)...`
+  );
 
   // Create temporary canvas for style processing
   const tempData = new Uint8ClampedArray(data);
 
   switch (selectedStyle) {
     case "oil-painting":
-      applyOilPaintingStyle(tempData, width, height);
+      applyOilPaintingStyle(tempData, width, height, intensity);
       break;
     case "watercolor":
-      applyWatercolorStyle(tempData, width, height);
+      applyWatercolorStyle(tempData, width, height, intensity);
       break;
     case "van-gogh":
-      applyVanGoghStyle(tempData, width, height);
+      applyVanGoghStyle(tempData, width, height, intensity);
       break;
     case "picasso":
-      applyPicassoStyle(tempData, width, height);
+      applyPicassoStyle(tempData, width, height, intensity);
       break;
     case "anime":
-      applyAnimeStyle(tempData, width, height);
+      applyAnimeStyle(tempData, width, height, intensity);
+      break;
+    case "monet":
+      applyMonetStyle(tempData, width, height, intensity);
+      break;
+    case "warhol":
+      applyWarholStyle(tempData, width, height, intensity);
+      break;
+    case "sketch":
+      applySketchStyle(tempData, width, height, intensity);
+      break;
+    case "kandinsky":
+      applyKandinskyStyle(tempData, width, height, intensity);
+      break;
+    case "stained-glass":
+      applyStainedGlassStyle(tempData, width, height, intensity);
       break;
   }
 
+  // Blend with original based on intensity
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = data[i] * (1 - intensity) + tempData[i] * intensity;
+    data[i + 1] = data[i + 1] * (1 - intensity) + tempData[i + 1] * intensity;
+    data[i + 2] = data[i + 2] * (1 - intensity) + tempData[i + 2] * intensity;
+  }
+
   // Apply the styled data
-  const imageData = new ImageData(tempData, width, height);
+  const imageData = new ImageData(data, width, height);
   ctx.putImageData(imageData, 0, 0);
 
   // Add artistic overlay with style name
   ctx.save();
   ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-  ctx.fillRect(10, height - 50, 300, 40);
+  ctx.fillRect(10, height - 50, 350, 40);
   ctx.fillStyle = "#3b82f6";
   ctx.font = "bold 18px Arial";
   ctx.fillText(
-    `🎨 Style: ${selectedStyle.replace("-", " ").toUpperCase()}`,
+    `🎨 Style: ${selectedStyle.replace("-", " ").toUpperCase()} (${Math.round(
+      intensity * 100
+    )}%)`,
     20,
     height - 22
   );
@@ -3239,16 +4120,28 @@ async function applyStyleTransfer(ctx, data, width, height) {
 /**
  * Oil Painting Style - Thick brush strokes and vibrant colors
  */
-function applyOilPaintingStyle(data, width, height) {
+function applyOilPaintingStyle(data, width, height, intensity = 0.8) {
   const original = new Uint8ClampedArray(data);
-  const brushSize = 4;
+  const brushSize = Math.floor(4 + intensity * 6); // 4-10 based on intensity
+  const saturationBoost = 1.2 + intensity * 0.8; // 1.2-2.0
 
-  for (let y = brushSize; y < height - brushSize; y += 2) {
-    for (let x = brushSize; x < width - brushSize; x += 2) {
+  for (
+    let y = brushSize;
+    y < height - brushSize;
+    y += Math.max(1, Math.floor(3 - intensity))
+  ) {
+    for (
+      let x = brushSize;
+      x < width - brushSize;
+      x += Math.max(1, Math.floor(3 - intensity))
+    ) {
       let r = 0,
         g = 0,
         b = 0,
         count = 0;
+      let maxR = 0,
+        maxG = 0,
+        maxB = 0;
 
       // Sample nearby pixels for brush stroke effect
       for (let dy = -brushSize; dy <= brushSize; dy++) {
@@ -3257,22 +4150,30 @@ function applyOilPaintingStyle(data, width, height) {
           r += original[idx];
           g += original[idx + 1];
           b += original[idx + 2];
+          maxR = Math.max(maxR, original[idx]);
+          maxG = Math.max(maxG, original[idx + 1]);
+          maxB = Math.max(maxB, original[idx + 2]);
           count++;
         }
       }
 
-      // Average and boost saturation
-      r = Math.min(255, (r / count) * 1.2);
-      g = Math.min(255, (g / count) * 1.2);
-      b = Math.min(255, (b / count) * 1.2);
+      // Average and boost saturation with impasto effect
+      r = Math.min(255, (r / count) * saturationBoost + maxR * 0.2);
+      g = Math.min(255, (g / count) * saturationBoost + maxG * 0.2);
+      b = Math.min(255, (b / count) * saturationBoost + maxB * 0.2);
 
-      // Apply to surrounding pixels
-      for (let dy = 0; dy < 2; dy++) {
-        for (let dx = 0; dx < 2; dx++) {
-          const idx = ((y + dy) * width + (x + dx)) * 4;
-          data[idx] = r;
-          data[idx + 1] = g;
-          data[idx + 2] = b;
+      // Apply thick brush strokes
+      const strokeSize = Math.floor(2 + intensity * 2);
+      for (let dy = 0; dy < strokeSize; dy++) {
+        for (let dx = 0; dx < strokeSize; dx++) {
+          const ny = y + dy;
+          const nx = x + dx;
+          if (ny < height && nx < width) {
+            const idx = (ny * width + nx) * 4;
+            data[idx] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+          }
         }
       }
     }
@@ -3282,82 +4183,115 @@ function applyOilPaintingStyle(data, width, height) {
 /**
  * Watercolor Style - Soft, flowing colors with lighter tones
  */
-function applyWatercolorStyle(data, width, height) {
+function applyWatercolorStyle(data, width, height, intensity = 0.8) {
   const original = new Uint8ClampedArray(data);
-
-  // Apply edge detection for watercolor boundaries
   const edges = detectEdges(original, width, height);
 
-  // Lighten and soften colors
-  for (let i = 0; i < data.length; i += 4) {
-    // Lighten colors
-    data[i] = Math.min(255, data[i] * 1.3 + 30);
-    data[i + 1] = Math.min(255, data[i + 1] * 1.3 + 30);
-    data[i + 2] = Math.min(255, data[i + 2] * 1.3 + 30);
+  // Create watercolor bleeding effect
+  const bleedRadius = Math.floor(3 + intensity * 5);
+  for (let y = bleedRadius; y < height - bleedRadius; y++) {
+    for (let x = bleedRadius; x < width - bleedRadius; x++) {
+      const idx = (y * width + x) * 4;
 
-    // Add texture at edges
-    const pixelIdx = Math.floor(i / 4);
-    if (edges[pixelIdx] > 100) {
-      data[i] *= 0.8;
-      data[i + 1] *= 0.8;
-      data[i + 2] *= 0.8;
+      // Sample random nearby pixels for water bleeding
+      const samples = Math.floor(5 + intensity * 10);
+      let r = 0,
+        g = 0,
+        b = 0;
+
+      for (let s = 0; s < samples; s++) {
+        const dx = Math.floor((Math.random() - 0.5) * bleedRadius * 2);
+        const dy = Math.floor((Math.random() - 0.5) * bleedRadius * 2);
+        const sIdx = ((y + dy) * width + (x + dx)) * 4;
+        r += original[sIdx];
+        g += original[sIdx + 1];
+        b += original[sIdx + 2];
+      }
+
+      r /= samples;
+      g /= samples;
+      b /= samples;
+
+      // Lighten and soften colors with watercolor transparency
+      const lightness = 1.2 + intensity * 0.3;
+      const transparency = 40 * intensity;
+      data[idx] = Math.min(255, r * lightness + transparency);
+      data[idx + 1] = Math.min(255, g * lightness + transparency);
+      data[idx + 2] = Math.min(255, b * lightness + transparency);
+
+      // Darken edges for watercolor paper texture
+      const pixelIdx = y * width + x;
+      if (edges[pixelIdx] > 80) {
+        data[idx] *= 0.6;
+        data[idx + 1] *= 0.6;
+        data[idx + 2] *= 0.6;
+      }
     }
   }
 
   // Apply blur for soft watercolor effect
-  applyGaussianBlur(data, width, height, 2);
+  const blurAmount = Math.floor(2 + intensity * 2);
+  applyGaussianBlur(data, width, height, blurAmount);
 }
 
 /**
  * Van Gogh Style - Swirling brush strokes and vibrant colors
  */
-function applyVanGoghStyle(data, width, height) {
+function applyVanGoghStyle(data, width, height, intensity = 0.8) {
   const original = new Uint8ClampedArray(data);
+  const swirls = Math.floor(3 + intensity * 5);
 
-  // Enhance colors dramatically
-  for (let i = 0; i < data.length; i += 4) {
-    const r = original[i];
-    const g = original[i + 1];
-    const b = original[i + 2];
+  // Create swirling brush stroke pattern
+  for (let y = swirls; y < height - swirls; y++) {
+    for (let x = swirls; x < width - swirls; x++) {
+      const idx = (y * width + x) * 4;
+      let r = 0,
+        g = 0,
+        b = 0,
+        count = 0;
 
-    // Boost saturation and contrast
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const delta = max - min;
-
-    if (delta > 0) {
-      data[i] = Math.min(255, r + (r - min) * 0.5);
-      data[i + 1] = Math.min(255, g + (g - min) * 0.5);
-      data[i + 2] = Math.min(255, b + (b - min) * 0.5);
-    }
-  }
-
-  // Apply swirl effect
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const dx = x - centerX;
-      const dy = y - centerY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const angle = Math.atan2(dy, dx);
-
-      // Swirl strength based on distance
-      const swirlStrength = (distance / maxRadius) * 0.3;
-      const newAngle = angle + swirlStrength;
-
-      const srcX = Math.round(centerX + distance * Math.cos(newAngle));
-      const srcY = Math.round(centerY + distance * Math.sin(newAngle));
-
-      if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
-        const srcIdx = (srcY * width + srcX) * 4;
-        const dstIdx = (y * width + x) * 4;
-        data[dstIdx] = original[srcIdx];
-        data[dstIdx + 1] = original[srcIdx + 1];
-        data[dstIdx + 2] = original[srcIdx + 2];
+      // Sample in circular/swirling pattern
+      const angle = (x + y) * 0.1;
+      for (let i = 0; i < swirls; i++) {
+        const dx = Math.floor(Math.cos(angle + i) * swirls);
+        const dy = Math.floor(Math.sin(angle + i) * swirls);
+        const sIdx = ((y + dy) * width + (x + dx)) * 4;
+        r += original[sIdx];
+        g += original[sIdx + 1];
+        b += original[sIdx + 2];
+        count++;
       }
+
+      r /= count;
+      g /= count;
+      b /= count;
+
+      // Dramatically boost saturation and contrast (Van Gogh signature)
+      const satBoost = 1.5 + intensity * 1.0; // 1.5-2.5
+      const contrastBoost = 1.3 + intensity * 0.7;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const mid = (max + min) / 2;
+
+      // Enhance saturation
+      r = r + (r - mid) * satBoost;
+      g = g + (g - mid) * satBoost;
+      b = b + (b - mid) * satBoost;
+
+      // Add starry night effect with yellow/blue dominance
+      const brightness = (r + g + b) / 3;
+      if (brightness > 128) {
+        b = Math.min(255, b * contrastBoost); // Blue highlights
+        g = Math.min(255, g * 1.2);
+      } else {
+        r = Math.min(255, r * contrastBoost); // Yellow/orange shadows
+        g = Math.min(255, g * 1.1);
+      }
+
+      data[idx] = Math.min(255, Math.max(0, r));
+      data[idx + 1] = Math.min(255, Math.max(0, g));
+      data[idx + 2] = Math.min(255, Math.max(0, b));
     }
   }
 }
@@ -3365,12 +4299,12 @@ function applyVanGoghStyle(data, width, height) {
 /**
  * Picasso Style - Cubist, geometric abstraction
  */
-function applyPicassoStyle(data, width, height) {
+function applyPicassoStyle(data, width, height, intensity = 0.8) {
   const original = new Uint8ClampedArray(data);
+  const blockSize = Math.floor(50 - intensity * 30); // 20-50 based on intensity
+  const distortion = 15 * intensity;
 
-  // Divide image into geometric sections
-  const blockSize = 40;
-
+  // Create geometric cubist sections
   for (let y = 0; y < height; y += blockSize) {
     for (let x = 0; x < width; x += blockSize) {
       let r = 0,
@@ -3393,14 +4327,42 @@ function applyPicassoStyle(data, width, height) {
       g = Math.floor(g / count);
       b = Math.floor(b / count);
 
-      // Apply with geometric distortion
-      const offsetX = (Math.random() - 0.5) * 10;
-      const offsetY = (Math.random() - 0.5) * 10;
+      // Add bold color shifts (Picasso's color palette)
+      const colorShift = Math.random();
+      if (colorShift < 0.33) {
+        b = Math.min(255, b * 1.5); // Blue period
+      } else if (colorShift < 0.66) {
+        r = Math.min(255, r * 1.4); // Rose period
+        g = Math.min(255, g * 1.2);
+      } else {
+        r = Math.min(255, r * 1.3); // Warm tones
+        g = Math.min(255, g * 1.3);
+      }
+
+      // Apply with geometric distortion and fragmentation
+      const offsetX = (Math.random() - 0.5) * distortion;
+      const offsetY = (Math.random() - 0.5) * distortion;
+      const rotation = Math.random() * 0.5 - 0.25; // Slight rotation
 
       for (let by = y; by < Math.min(y + blockSize, height); by++) {
         for (let bx = x; bx < Math.min(x + blockSize, width); bx++) {
-          const newX = Math.round(bx + offsetX);
-          const newY = Math.round(by + offsetY);
+          // Apply cubist transformation
+          const dx = bx - (x + blockSize / 2);
+          const dy = by - (y + blockSize / 2);
+          const newX = Math.round(
+            x +
+              blockSize / 2 +
+              dx * Math.cos(rotation) -
+              dy * Math.sin(rotation) +
+              offsetX
+          );
+          const newY = Math.round(
+            y +
+              blockSize / 2 +
+              dx * Math.sin(rotation) +
+              dy * Math.cos(rotation) +
+              offsetY
+          );
 
           if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
             const idx = (newY * width + newX) * 4;
@@ -3412,44 +4374,434 @@ function applyPicassoStyle(data, width, height) {
       }
     }
   }
+
+  // Add geometric edge lines (cubist outlines)
+  const edges = detectEdges(original, width, height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      if (edges[y * width + x] > 100) {
+        const darkness = 0.3 * intensity;
+        data[idx] *= darkness;
+        data[idx + 1] *= darkness;
+        data[idx + 2] *= darkness;
+      }
+    }
+  }
 }
 
 /**
  * Anime Style - Bold outlines and vibrant, flat colors
  */
-function applyAnimeStyle(data, width, height) {
+function applyAnimeStyle(data, width, height, intensity = 0.8) {
   const original = new Uint8ClampedArray(data);
-
-  // Detect edges for anime outlines
   const edges = detectEdges(original, width, height);
 
-  // Posterize colors (reduce color palette)
-  const levels = 4;
+  // Posterize colors (reduce color palette) - anime cel shading
+  const levels = Math.floor(3 + intensity * 3); // 3-6 color levels
+  const stepSize = 256 / levels;
+
   for (let i = 0; i < data.length; i += 4) {
-    data[i] = Math.floor(data[i] / (256 / levels)) * (256 / levels);
-    data[i + 1] = Math.floor(data[i + 1] / (256 / levels)) * (256 / levels);
-    data[i + 2] = Math.floor(data[i + 2] / (256 / levels)) * (256 / levels);
+    // Quantize to discrete color levels
+    data[i] = Math.floor(data[i] / stepSize) * stepSize + stepSize / 2;
+    data[i + 1] = Math.floor(data[i + 1] / stepSize) * stepSize + stepSize / 2;
+    data[i + 2] = Math.floor(data[i + 2] / stepSize) * stepSize + stepSize / 2;
 
-    // Boost saturation
-    const max = Math.max(data[i], data[i + 1], data[i + 2]);
-    const min = Math.min(data[i], data[i + 1], data[i + 2]);
-    const delta = max - min;
+    // Dramatically boost saturation (anime vibrant colors)
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const mid = (max + min) / 2;
 
-    if (delta > 0) {
-      data[i] = Math.min(255, data[i] + (data[i] - min) * 0.3);
-      data[i + 1] = Math.min(255, data[i + 1] + (data[i + 1] - min) * 0.3);
-      data[i + 2] = Math.min(255, data[i + 2] + (data[i + 2] - min) * 0.3);
+    const satBoost = 1.5 + intensity * 1.0; // 1.5-2.5
+    data[i] = Math.min(255, mid + (r - mid) * satBoost);
+    data[i + 1] = Math.min(255, mid + (g - mid) * satBoost);
+    data[i + 2] = Math.min(255, mid + (b - mid) * satBoost);
+
+    // Brighten overall (anime brightness)
+    const brightnessBoost = 1.1 + intensity * 0.2;
+    data[i] = Math.min(255, data[i] * brightnessBoost);
+    data[i + 1] = Math.min(255, data[i + 1] * brightnessBoost);
+    data[i + 2] = Math.min(255, data[i + 2] * brightnessBoost);
+  }
+
+  // Add bold black outlines (anime signature)
+  const outlineThickness = Math.floor(1 + intensity * 2);
+  const outlineThreshold = 60 + intensity * 40;
+
+  for (let y = outlineThickness; y < height - outlineThickness; y++) {
+    for (let x = outlineThickness; x < width - outlineThickness; x++) {
+      const edgeValue = edges[y * width + x];
+
+      if (edgeValue > outlineThreshold) {
+        // Draw thick black outline
+        for (let dy = -outlineThickness; dy <= outlineThickness; dy++) {
+          for (let dx = -outlineThickness; dx <= outlineThickness; dx++) {
+            const idx = ((y + dy) * width + (x + dx)) * 4;
+            data[idx] = 0;
+            data[idx + 1] = 0;
+            data[idx + 2] = 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Monet Style - Impressionist with soft, dreamy light effects
+ */
+function applyMonetStyle(data, width, height, intensity = 0.8) {
+  const original = new Uint8ClampedArray(data);
+  const brushSize = Math.floor(3 + intensity * 4);
+
+  // Create impressionist dabs of color
+  for (
+    let y = brushSize;
+    y < height - brushSize;
+    y += Math.max(1, Math.floor(4 - intensity * 2))
+  ) {
+    for (
+      let x = brushSize;
+      x < width - brushSize;
+      x += Math.max(1, Math.floor(4 - intensity * 2))
+    ) {
+      let r = 0,
+        g = 0,
+        b = 0,
+        count = 0;
+
+      // Sample in small area for color dabs
+      const offset = Math.random() * brushSize;
+      for (let dy = -brushSize; dy <= brushSize; dy++) {
+        for (let dx = -brushSize; dx <= brushSize; dx++) {
+          const idx = ((y + dy) * width + (x + dx)) * 4;
+          r += original[idx];
+          g += original[idx + 1];
+          b += original[idx + 2];
+          count++;
+        }
+      }
+
+      r /= count;
+      g /= count;
+      b /= count;
+
+      // Apply Monet's signature light effects - favor blues and soft pastels
+      const lightBoost = 1.3 + intensity * 0.4;
+      const blueShift = 1.1 + intensity * 0.3;
+
+      r = Math.min(255, r * lightBoost + 20);
+      g = Math.min(255, g * lightBoost + 15);
+      b = Math.min(255, b * lightBoost * blueShift + 25); // Favor blue tones
+
+      // Apply soft dabs
+      const dabSize = Math.floor(2 + intensity * 3);
+      for (let dy = 0; dy < dabSize; dy++) {
+        for (let dx = 0; dx < dabSize; dx++) {
+          const ny = y + dy;
+          const nx = x + dx;
+          if (ny < height && nx < width) {
+            const idx = (ny * width + nx) * 4;
+            data[idx] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+          }
+        }
+      }
     }
   }
 
-  // Add bold black outlines
+  // Apply soft blur for dreamy impressionist effect
+  applyGaussianBlur(data, width, height, Math.floor(1 + intensity * 2));
+}
+
+/**
+ * Warhol Style - Pop art with bold, vibrant color blocks
+ */
+function applyWarholStyle(data, width, height, intensity = 0.8) {
+  const original = new Uint8ClampedArray(data);
+
+  // Posterize to limited colors (pop art palette)
+  const colorLevels = Math.floor(3 + intensity * 2); // 3-5 levels
+  const stepSize = 256 / colorLevels;
+
+  for (let i = 0; i < data.length; i += 4) {
+    // Quantize colors
+    let r = Math.floor(original[i] / stepSize) * stepSize;
+    let g = Math.floor(original[i + 1] / stepSize) * stepSize;
+    let b = Math.floor(original[i + 2] / stepSize) * stepSize;
+
+    // Apply dramatic pop art color shifts
+    const colorShift = (i / 4) % 4;
+    const shiftIntensity = 0.5 + intensity * 0.5;
+
+    switch (colorShift) {
+      case 0: // Magenta/Pink shift
+        r = Math.min(255, r * (1 + shiftIntensity));
+        b = Math.min(255, b * (1 + shiftIntensity));
+        g *= 0.7;
+        break;
+      case 1: // Cyan shift
+        g = Math.min(255, g * (1 + shiftIntensity));
+        b = Math.min(255, b * (1 + shiftIntensity));
+        r *= 0.7;
+        break;
+      case 2: // Yellow shift
+        r = Math.min(255, r * (1 + shiftIntensity));
+        g = Math.min(255, g * (1 + shiftIntensity));
+        b *= 0.7;
+        break;
+      case 3: // Green shift
+        g = Math.min(255, g * (1.2 + shiftIntensity));
+        r *= 0.8;
+        b *= 0.8;
+        break;
+    }
+
+    // Ultra-saturate for pop art effect
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const mid = (max + min) / 2;
+    const satBoost = 2.0 + intensity * 1.0; // 2.0-3.0
+
+    data[i] = Math.min(255, Math.max(0, mid + (r - mid) * satBoost));
+    data[i + 1] = Math.min(255, Math.max(0, mid + (g - mid) * satBoost));
+    data[i + 2] = Math.min(255, Math.max(0, mid + (b - mid) * satBoost));
+  }
+
+  // Add high contrast
+  for (let i = 0; i < data.length; i += 4) {
+    const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+    const contrast = 1.4 + intensity * 0.6;
+
+    data[i] = Math.min(
+      255,
+      Math.max(0, (data[i] - brightness) * contrast + brightness)
+    );
+    data[i + 1] = Math.min(
+      255,
+      Math.max(0, (data[i + 1] - brightness) * contrast + brightness)
+    );
+    data[i + 2] = Math.min(
+      255,
+      Math.max(0, (data[i + 2] - brightness) * contrast + brightness)
+    );
+  }
+}
+
+/**
+ * Sketch Style - Pencil/charcoal drawing effect
+ */
+function applySketchStyle(data, width, height, intensity = 0.8) {
+  const original = new Uint8ClampedArray(data);
+
+  // Convert to grayscale first
+  for (let i = 0; i < data.length; i += 4) {
+    const gray =
+      original[i] * 0.299 + original[i + 1] * 0.587 + original[i + 2] * 0.114;
+    data[i] = gray;
+    data[i + 1] = gray;
+    data[i + 2] = gray;
+  }
+
+  // Detect edges for sketch lines
+  const edges = detectEdges(data, width, height);
+  const edgeThreshold = 60 - intensity * 40; // 20-60
+
+  // Apply sketch effect
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      if (edges[y * width + x] > 80) {
-        data[idx] = 0;
-        data[idx + 1] = 0;
-        data[idx + 2] = 0;
+      const edgeValue = edges[y * width + x];
+
+      if (edgeValue > edgeThreshold) {
+        // Draw dark sketch lines
+        const lineIntensity = (edgeValue / 255) * intensity;
+        data[idx] = Math.max(0, data[idx] * (1 - lineIntensity));
+        data[idx + 1] = Math.max(0, data[idx + 1] * (1 - lineIntensity));
+        data[idx + 2] = Math.max(0, data[idx + 2] * (1 - lineIntensity));
+      } else {
+        // Lighten non-edge areas (paper texture)
+        const lighten = 1.2 + intensity * 0.3;
+        data[idx] = Math.min(255, data[idx] * lighten);
+        data[idx + 1] = Math.min(255, data[idx + 1] * lighten);
+        data[idx + 2] = Math.min(255, data[idx + 2] * lighten);
+      }
+
+      // Add paper texture noise
+      const noise = (Math.random() - 0.5) * 15 * intensity;
+      data[idx] = Math.min(255, Math.max(0, data[idx] + noise));
+      data[idx + 1] = Math.min(255, Math.max(0, data[idx + 1] + noise));
+      data[idx + 2] = Math.min(255, Math.max(0, data[idx + 2] + noise));
+    }
+  }
+
+  // Add slight blur for pencil softness
+  applyGaussianBlur(data, width, height, 1);
+}
+
+/**
+ * Kandinsky Style - Abstract geometric shapes with vibrant colors
+ */
+function applyKandinskyStyle(data, width, height, intensity = 0.8) {
+  const original = new Uint8ClampedArray(data);
+  const shapeSize = Math.floor(60 - intensity * 30); // 30-60
+
+  // Create abstract geometric regions
+  for (let y = 0; y < height; y += shapeSize) {
+    for (let x = 0; x < width; x += shapeSize) {
+      let r = 0,
+        g = 0,
+        b = 0,
+        count = 0;
+
+      // Calculate average color for region
+      for (let by = y; by < Math.min(y + shapeSize, height); by++) {
+        for (let bx = x; bx < Math.min(x + shapeSize, width); bx++) {
+          const idx = (by * width + bx) * 4;
+          r += original[idx];
+          g += original[idx + 1];
+          b += original[idx + 2];
+          count++;
+        }
+      }
+
+      r /= count;
+      g /= count;
+      b /= count;
+
+      // Apply Kandinsky's abstract color theory
+      const colorMode = Math.random();
+      const vibrance = 1.5 + intensity * 1.0;
+
+      if (colorMode < 0.33) {
+        // Primary colors emphasis
+        const max = Math.max(r, g, b);
+        if (r === max) {
+          r = Math.min(255, r * vibrance);
+          g *= 0.5;
+          b *= 0.5;
+        } else if (g === max) {
+          g = Math.min(255, g * vibrance);
+          r *= 0.5;
+          b *= 0.5;
+        } else {
+          b = Math.min(255, b * vibrance);
+          r *= 0.5;
+          g *= 0.5;
+        }
+      } else if (colorMode < 0.66) {
+        // Complementary colors
+        r = Math.min(255, 255 - r * 0.5 + r * vibrance * 0.5);
+        g = Math.min(255, 255 - g * 0.5 + g * vibrance * 0.5);
+        b = Math.min(255, 255 - b * 0.5 + b * vibrance * 0.5);
+      } else {
+        // Harmonious colors
+        const hue = (r + g + b) / 3;
+        r = Math.min(255, hue + (r - hue) * vibrance);
+        g = Math.min(255, hue + (g - hue) * vibrance);
+        b = Math.min(255, hue + (b - hue) * vibrance);
+      }
+
+      // Draw geometric shapes (circles, triangles, rectangles)
+      const shapeType = Math.floor(Math.random() * 3);
+      const centerX = x + shapeSize / 2;
+      const centerY = y + shapeSize / 2;
+
+      for (let by = y; by < Math.min(y + shapeSize, height); by++) {
+        for (let bx = x; bx < Math.min(x + shapeSize, width); bx++) {
+          let inShape = false;
+          const dx = bx - centerX;
+          const dy = by - centerY;
+
+          if (shapeType === 0) {
+            // Circle
+            inShape = dx * dx + dy * dy < (shapeSize * shapeSize) / 4;
+          } else if (shapeType === 1) {
+            // Triangle
+            inShape = Math.abs(dx) + Math.abs(dy) < shapeSize / 2;
+          } else {
+            // Rectangle
+            inShape =
+              Math.abs(dx) < shapeSize / 3 && Math.abs(dy) < shapeSize / 3;
+          }
+
+          if (inShape) {
+            const idx = (by * width + bx) * 4;
+            data[idx] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Stained Glass Style - Colorful geometric mosaic effect
+ */
+function applyStainedGlassStyle(data, width, height, intensity = 0.8) {
+  const original = new Uint8ClampedArray(data);
+  const edges = detectEdges(original, width, height);
+  const cellSize = Math.floor(40 - intensity * 20); // 20-40
+
+  // Create stained glass cells
+  for (let y = 0; y < height; y += cellSize) {
+    for (let x = 0; x < width; x += cellSize) {
+      let r = 0,
+        g = 0,
+        b = 0,
+        count = 0;
+
+      // Calculate average color for cell
+      for (let by = y; by < Math.min(y + cellSize, height); by++) {
+        for (let bx = x; bx < Math.min(x + cellSize, width); bx++) {
+          const idx = (by * width + bx) * 4;
+          r += original[idx];
+          g += original[idx + 1];
+          b += original[idx + 2];
+          count++;
+        }
+      }
+
+      r /= count;
+      g /= count;
+      b /= count;
+
+      // Saturate and brighten (stained glass is translucent)
+      const satBoost = 1.6 + intensity * 0.8; // 1.6-2.4
+      const brightness = (r + g + b) / 3;
+
+      r = Math.min(255, brightness + (r - brightness) * satBoost + 30);
+      g = Math.min(255, brightness + (g - brightness) * satBoost + 30);
+      b = Math.min(255, brightness + (b - brightness) * satBoost + 30);
+
+      // Fill cell with uniform color
+      for (let by = y; by < Math.min(y + cellSize, height); by++) {
+        for (let bx = x; bx < Math.min(x + cellSize, width); bx++) {
+          const idx = (by * width + bx) * 4;
+          data[idx] = r;
+          data[idx + 1] = g;
+          data[idx + 2] = b;
+        }
+      }
+    }
+  }
+
+  // Add dark lead lines between glass pieces
+  const leadThickness = Math.floor(1 + intensity * 2);
+  for (let y = leadThickness; y < height - leadThickness; y++) {
+    for (let x = leadThickness; x < width - leadThickness; x++) {
+      // Draw grid lines
+      if (x % cellSize < leadThickness || y % cellSize < leadThickness) {
+        const idx = (y * width + x) * 4;
+        data[idx] = 20;
+        data[idx + 1] = 20;
+        data[idx + 2] = 20;
       }
     }
   }
@@ -3524,79 +4876,435 @@ async function applyAIImageGeneration(ctx, data, width, height) {
  * Apply Background Removal (U²-Net inspired)
  * Intelligent foreground-background separation
  */
-async function applyBackgroundRemoval(ctx, data, width, height) {
+async function applyBackgroundRemoval(
+  ctx,
+  data,
+  width,
+  height,
+  method = "ai-saliency",
+  threshold = 0.5,
+  feathering = 3,
+  outputMode = "transparent"
+) {
+  console.log(
+    `🎯 Applying background removal: ${method}, threshold: ${threshold}, feathering: ${feathering}, output: ${outputMode}`
+  );
+
   const original = new Uint8ClampedArray(data);
+  let mask = new Uint8Array(width * height);
 
-  // Detect salient regions (foreground)
-  const saliencyMap = detectSalientRegions(original, width, height);
-
-  // Find the main subject (largest salient region)
-  const threshold = 150;
-  const mask = new Uint8Array(width * height);
-
-  for (let i = 0; i < saliencyMap.length; i++) {
-    mask[i] = saliencyMap[i] > threshold ? 255 : 0;
+  // Generate mask using selected method
+  switch (method) {
+    case "edge-detection":
+      mask = generateEdgeBasedMask(original, width, height, threshold);
+      break;
+    case "color-segmentation":
+      mask = generateColorSegmentationMask(original, width, height, threshold);
+      break;
+    case "grabcut":
+      mask = generateGrabCutMask(original, width, height, threshold);
+      break;
+    case "ai-saliency":
+    default:
+      mask = generateAISaliencyMask(original, width, height, threshold);
+      break;
   }
 
-  // Refine mask with morphological operations
-  refineMask(mask, width, height);
-
-  // Apply alpha channel for transparency
-  for (let i = 0; i < width * height; i++) {
-    const idx = i * 4;
-    if (mask[i] === 0) {
-      // Transparent background - show checkerboard pattern
-      const x = i % width;
-      const y = Math.floor(i / width);
-      const checker = (Math.floor(x / 20) + Math.floor(y / 20)) % 2 === 0;
-      data[idx] = checker ? 200 : 150;
-      data[idx + 1] = checker ? 200 : 150;
-      data[idx + 2] = checker ? 200 : 150;
-      data[idx + 3] = 255;
-    } else {
-      // Keep foreground colors with slight edge enhancement
-      const edgeStrength = calculateEdgeStrength(original, i, width, height);
-      if (edgeStrength > 30) {
-        data[idx] = Math.min(255, data[idx] * 1.1);
-        data[idx + 1] = Math.min(255, data[idx + 1] * 1.1);
-        data[idx + 2] = Math.min(255, data[idx + 2] * 1.1);
-      }
-    }
+  // Apply feathering/smoothing to mask edges
+  if (feathering > 0) {
+    applyMaskFeathering(mask, width, height, feathering);
   }
+
+  // Apply background removal based on output mode
+  applyBackgroundOutput(
+    data,
+    original,
+    mask,
+    width,
+    height,
+    outputMode,
+    feathering
+  );
 
   const imageData = new ImageData(data, width, height);
   ctx.putImageData(imageData, 0, 0);
 
-  // Draw outline around subject
-  ctx.save();
-  ctx.strokeStyle = "#3b82f6";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([5, 5]);
+  // Add info overlay
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(10, height - 50, 450, 40);
+  ctx.fillStyle = "#3b82f6";
+  ctx.font = "bold 18px Arial";
+  const methodName = method
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  ctx.fillText(
+    `🎯 Background Removed - ${methodName} (${outputMode})`,
+    20,
+    height - 22
+  );
+}
 
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = y * width + x;
+/**
+ * Generate mask using edge detection method
+ */
+function generateEdgeBasedMask(data, width, height, threshold) {
+  const mask = new Uint8Array(width * height);
+  const edges = detectEdges(data, width, height);
+
+  // Find connected components from edges
+  const edgeThreshold = threshold * 255;
+  const labels = new Int32Array(width * height);
+  let label = 1;
+
+  // Flood fill from center to identify foreground
+  const centerX = Math.floor(width / 2);
+  const centerY = Math.floor(height / 2);
+  const queue = [[centerX, centerY]];
+  const visited = new Uint8Array(width * height);
+
+  while (queue.length > 0) {
+    const [x, y] = queue.shift();
+    const idx = y * width + x;
+
+    if (x < 0 || x >= width || y < 0 || y >= height || visited[idx]) continue;
+    visited[idx] = 1;
+
+    // If strong edge, stop expansion
+    if (edges[idx] > edgeThreshold) continue;
+
+    mask[idx] = 255;
+
+    // Add neighbors
+    queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+  }
+
+  // Refine mask
+  refineMask(mask, width, height);
+  return mask;
+}
+
+/**
+ * Generate mask using color segmentation (k-means like)
+ */
+function generateColorSegmentationMask(data, width, height, threshold) {
+  const mask = new Uint8Array(width * height);
+
+  // Sample background colors from edges
+  const bgColors = [];
+  const sampleSize = 20;
+
+  // Sample top, bottom, left, right edges
+  for (let i = 0; i < sampleSize; i++) {
+    const x = Math.floor((i / sampleSize) * width);
+    const y = Math.floor((i / sampleSize) * height);
+
+    // Top edge
+    let idx = x * 4;
+    bgColors.push([data[idx], data[idx + 1], data[idx + 2]]);
+
+    // Bottom edge
+    idx = ((height - 1) * width + x) * 4;
+    bgColors.push([data[idx], data[idx + 1], data[idx + 2]]);
+
+    // Left edge
+    idx = y * width * 4;
+    bgColors.push([data[idx], data[idx + 1], data[idx + 2]]);
+
+    // Right edge
+    idx = (y * width + width - 1) * 4;
+    bgColors.push([data[idx], data[idx + 1], data[idx + 2]]);
+  }
+
+  // Calculate average background color
+  let avgR = 0,
+    avgG = 0,
+    avgB = 0;
+  for (const [r, g, b] of bgColors) {
+    avgR += r;
+    avgG += g;
+    avgB += b;
+  }
+  avgR /= bgColors.length;
+  avgG /= bgColors.length;
+  avgB /= bgColors.length;
+
+  // Classify each pixel
+  const colorThreshold = (1 - threshold) * 150 + 30; // 30-180 range
+
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    const r = data[idx];
+    const g = data[idx + 1];
+    const b = data[idx + 2];
+
+    // Calculate color distance from background
+    const dist = Math.sqrt((r - avgR) ** 2 + (g - avgG) ** 2 + (b - avgB) ** 2);
+
+    mask[i] = dist > colorThreshold ? 255 : 0;
+  }
+
+  // Refine mask
+  refineMask(mask, width, height);
+  return mask;
+}
+
+/**
+ * Generate mask using GrabCut-like algorithm
+ */
+function generateGrabCutMask(data, width, height, threshold) {
+  const mask = new Uint8Array(width * height);
+
+  // Define initial trimap (foreground, background, unknown)
+  const margin = Math.floor(Math.min(width, height) * 0.1);
+  const fgRect = {
+    x: margin,
+    y: margin,
+    w: width - 2 * margin,
+    h: height - 2 * margin,
+  };
+
+  // Initialize: definite background (edges), probable foreground (center)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+
       if (
-        mask[idx] > 0 &&
-        (mask[idx - 1] === 0 ||
-          mask[idx + 1] === 0 ||
-          mask[idx - width] === 0 ||
-          mask[idx + width] === 0)
+        x < fgRect.x ||
+        x >= fgRect.x + fgRect.w ||
+        y < fgRect.y ||
+        y >= fgRect.y + fgRect.h
       ) {
-        ctx.fillStyle = "#3b82f6";
-        ctx.fillRect(x, y, 1, 1);
+        mask[i] = 0; // Definite background
+      } else {
+        mask[i] = 255; // Probable foreground
       }
     }
   }
 
-  ctx.restore();
+  // Build color models for foreground and background
+  const fgColors = [];
+  const bgColors = [];
 
-  // Add info overlay
-  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-  ctx.fillRect(10, height - 50, 380, 40);
-  ctx.fillStyle = "#3b82f6";
-  ctx.font = "bold 18px Arial";
-  ctx.fillText("🎯 Background Removed - Foreground Isolated", 20, height - 22);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      const idx = i * 4;
+      const color = [data[idx], data[idx + 1], data[idx + 2]];
+
+      if (mask[i] === 255) {
+        fgColors.push(color);
+      } else {
+        bgColors.push(color);
+      }
+    }
+  }
+
+  // Calculate color statistics
+  const fgAvg = calculateColorAverage(fgColors);
+  const bgAvg = calculateColorAverage(bgColors);
+
+  // Refine mask based on color similarity
+  const adaptiveThreshold = threshold * 100 + 50; // 50-150 range
+
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    const r = data[idx];
+    const g = data[idx + 1];
+    const b = data[idx + 2];
+
+    const fgDist = Math.sqrt(
+      (r - fgAvg[0]) ** 2 + (g - fgAvg[1]) ** 2 + (b - fgAvg[2]) ** 2
+    );
+    const bgDist = Math.sqrt(
+      (r - bgAvg[0]) ** 2 + (g - bgAvg[1]) ** 2 + (b - bgAvg[2]) ** 2
+    );
+
+    mask[i] = fgDist < bgDist + adaptiveThreshold ? 255 : 0;
+  }
+
+  // Refine mask
+  refineMask(mask, width, height);
+  return mask;
+}
+
+/**
+ * Calculate average color from array of colors
+ */
+function calculateColorAverage(colors) {
+  if (colors.length === 0) return [128, 128, 128];
+
+  let r = 0,
+    g = 0,
+    b = 0;
+  for (const [cr, cg, cb] of colors) {
+    r += cr;
+    g += cg;
+    b += cb;
+  }
+  return [r / colors.length, g / colors.length, b / colors.length];
+}
+
+/**
+ * Generate mask using AI-based saliency detection
+ */
+function generateAISaliencyMask(data, width, height, threshold) {
+  const mask = new Uint8Array(width * height);
+  const saliencyMap = detectSalientRegions(data, width, height);
+
+  // Convert saliency map to binary mask with threshold
+  const saliencyThreshold = threshold * 255;
+
+  for (let i = 0; i < saliencyMap.length; i++) {
+    mask[i] = saliencyMap[i] > saliencyThreshold ? 255 : 0;
+  }
+
+  // Refine mask
+  refineMask(mask, width, height);
+  return mask;
+}
+
+/**
+ * Apply feathering/smoothing to mask edges
+ */
+function applyMaskFeathering(mask, width, height, feathering) {
+  if (feathering <= 0) return;
+
+  const temp = new Uint8Array(mask);
+  const radius = Math.floor(feathering);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+
+      // Calculate average in neighborhood
+      let sum = 0;
+      let count = 0;
+
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+
+          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+            const ni = ny * width + nx;
+            sum += temp[ni];
+            count++;
+          }
+        }
+      }
+
+      mask[i] = Math.floor(sum / count);
+    }
+  }
+}
+
+/**
+ * Apply background output based on mode
+ */
+function applyBackgroundOutput(
+  data,
+  original,
+  mask,
+  width,
+  height,
+  mode,
+  feathering
+) {
+  const hasFeathering = feathering > 0;
+
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    const alpha = mask[i] / 255; // 0-1 range
+
+    if (alpha < 0.01) {
+      // Background pixel
+      switch (mode) {
+        case "transparent":
+        case "checkerboard":
+          const x = i % width;
+          const y = Math.floor(i / width);
+          const checker = (Math.floor(x / 20) + Math.floor(y / 20)) % 2 === 0;
+          data[idx] = checker ? 200 : 150;
+          data[idx + 1] = checker ? 200 : 150;
+          data[idx + 2] = checker ? 200 : 150;
+          break;
+        case "white":
+          data[idx] = 255;
+          data[idx + 1] = 255;
+          data[idx + 2] = 255;
+          break;
+        case "black":
+          data[idx] = 0;
+          data[idx + 1] = 0;
+          data[idx + 2] = 0;
+          break;
+        case "blur":
+          // Apply heavy blur to background
+          const blurred = getBlurredPixel(original, i, width, height, 10);
+          data[idx] = blurred[0];
+          data[idx + 1] = blurred[1];
+          data[idx + 2] = blurred[2];
+          break;
+      }
+    } else if (hasFeathering && alpha < 0.99) {
+      // Edge pixel with feathering - blend
+      const fg = [original[idx], original[idx + 1], original[idx + 2]];
+      let bg;
+
+      switch (mode) {
+        case "white":
+          bg = [255, 255, 255];
+          break;
+        case "black":
+          bg = [0, 0, 0];
+          break;
+        case "blur":
+          bg = getBlurredPixel(original, i, width, height, 10);
+          break;
+        default:
+          const x = i % width;
+          const y = Math.floor(i / width);
+          const checker = (Math.floor(x / 20) + Math.floor(y / 20)) % 2 === 0;
+          bg = checker ? [200, 200, 200] : [150, 150, 150];
+      }
+
+      data[idx] = Math.floor(fg[0] * alpha + bg[0] * (1 - alpha));
+      data[idx + 1] = Math.floor(fg[1] * alpha + bg[1] * (1 - alpha));
+      data[idx + 2] = Math.floor(fg[2] * alpha + bg[2] * (1 - alpha));
+    }
+    // else: foreground pixel, keep original
+  }
+}
+
+/**
+ * Get blurred pixel value
+ */
+function getBlurredPixel(data, pixelIdx, width, height, radius) {
+  const x = pixelIdx % width;
+  const y = Math.floor(pixelIdx / width);
+
+  let r = 0,
+    g = 0,
+    b = 0,
+    count = 0;
+
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      const nx = x + dx;
+      const ny = y + dy;
+
+      if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+        const ni = (ny * width + nx) * 4;
+        r += data[ni];
+        g += data[ni + 1];
+        b += data[ni + 2];
+        count++;
+      }
+    }
+  }
+
+  return [r / count, g / count, b / count];
 }
 
 /**
@@ -4005,7 +5713,33 @@ self.onmessage = async (e) => {
       await loadModel(data.modelId, data.task, id);
       self.postMessage({ id, type: "success", data: {} });
     } else if (type === "process") {
-      const result = await processImage(data.imageUrl, data.modelId, data.task);
+      const result = await processImage(
+        data.imageUrl,
+        data.modelId,
+        data.task,
+        data.denoisingLevel,
+        data.upscaleFactor,
+        data.colorizationIntensity,
+        data.colorizationSaturation,
+        data.inpaintingGuidanceScale,
+        data.inpaintingInferenceSteps,
+        data.inpaintingStrength,
+        data.objectDetectionConfidence,
+        data.objectDetectionIOU,
+        data.objectDetectionMaxDetections,
+        data.poseEstimationConfidence,
+        data.poseKeypointThreshold,
+        data.poseMaxDetections,
+        data.maskingEdgeThreshold,
+        data.maskingSegmentationIntensity,
+        data.maskingMorphologyStrength,
+        data.styleTransferStyle,
+        data.styleTransferIntensity,
+        data.bgRemovalMethod,
+        data.bgRemovalThreshold,
+        data.bgRemovalFeathering,
+        data.bgRemovalOutputMode
+      );
       self.postMessage({ id, type: "success", data: result });
     } else {
       throw new Error(`Unknown message type: ${type}`);
