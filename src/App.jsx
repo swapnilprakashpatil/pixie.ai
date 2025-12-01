@@ -199,10 +199,12 @@ const theme = createTheme({
 });
 
 function App() {
+  const basename = import.meta.env.MODE === 'production' ? '/pixie.ai' : '/';
+  
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
+      <Router basename={basename}>
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
