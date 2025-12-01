@@ -1,0 +1,320 @@
+/* Architecture Diagram Animations */
+
+@keyframes gridPulse {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes flowPulse {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nodePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes packetFlow1 {
+  0% {
+    top: 5%;
+    left: 50%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  25% {
+    top: 20%;
+    left: 20%;
+  }
+  40% {
+    top: 38%;
+    left: 35%;
+  }
+  55% {
+    top: 56%;
+    left: 50%;
+  }
+  70% {
+    top: 74%;
+    left: 30%;
+  }
+  85% {
+    top: 92%;
+    left: 50%;
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    left: 50%;
+    opacity: 0;
+  }
+}
+
+@keyframes packetFlow2 {
+  0% {
+    top: 5%;
+    left: 50%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  25% {
+    top: 20%;
+    left: 80%;
+  }
+  40% {
+    top: 38%;
+    left: 65%;
+  }
+  55% {
+    top: 56%;
+    left: 50%;
+  }
+  70% {
+    top: 74%;
+    left: 70%;
+  }
+  85% {
+    top: 92%;
+    left: 50%;
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    left: 50%;
+    opacity: 0;
+  }
+}
+
+@keyframes packetFlow3 {
+  0% {
+    top: 38%;
+    left: 35%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  40% {
+    top: 56%;
+    left: 50%;
+  }
+  70% {
+    top: 74%;
+    left: 30%;
+  }
+  90% {
+    top: 92%;
+    left: 50%;
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    left: 50%;
+    opacity: 0;
+  }
+}
+
+@keyframes packetFlow4 {
+  0% {
+    top: 38%;
+    left: 65%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  40% {
+    top: 56%;
+    left: 50%;
+  }
+  70% {
+    top: 74%;
+    left: 70%;
+  }
+  90% {
+    top: 92%;
+    left: 50%;
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    left: 50%;
+    opacity: 0;
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes labelFade {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Background animated grid */
+.architecture-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(
+      rgba(102, 126, 234, 0.1) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(102, 126, 234, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridPulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Flow lines animation */
+.flow-lines line.flow-line {
+  stroke-dasharray: 5, 5;
+  animation: flowPulse 3s linear infinite;
+}
+
+.flow-lines text.flow-label {
+  animation: labelFade 2s ease-in-out infinite;
+}
+
+/* Architecture nodes */
+.architecture-node {
+  animation: nodePulse 4s ease-in-out infinite;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.architecture-node.active {
+  animation: none;
+  filter: brightness(1.1);
+}
+
+/* Data packets */
+.data-packet {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #667eea, #764ba2);
+  box-shadow: 0 0 15px rgba(102, 126, 234, 0.8);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.packet-1 {
+  animation: packetFlow1 8s ease-in-out infinite;
+  animation-delay: 0s;
+}
+
+.packet-2 {
+  animation: packetFlow2 8s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.packet-3 {
+  animation: packetFlow3 6s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.packet-4 {
+  animation: packetFlow4 6s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+/* Performance indicator */
+.performance-indicator {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 20px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+/* Hover effects */
+.architecture-node:hover ~ .data-packet {
+  animation-play-state: paused;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .architecture-node {
+    width: 100px !important;
+    height: 70px !important;
+  }
+
+  .architecture-node Typography {
+    font-size: 0.75rem !important;
+  }
+
+  .flow-lines text {
+    font-size: 8px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .architecture-node {
+    width: 80px !important;
+    height: 60px !important;
+  }
+
+  .flow-lines text {
+    display: none;
+  }
+}
+
+/* Glow effect for connections */
+@keyframes connectionGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px rgba(102, 126, 234, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.9));
+  }
+}
+
+.flow-lines {
+  animation: connectionGlow 3s ease-in-out infinite;
+}

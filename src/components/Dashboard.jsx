@@ -47,6 +47,7 @@ import { useState } from 'react';
 import { TASKS, MODELS, TABS } from '../lib/constants';
 import { useAppStore } from '../store/appStore';
 import PixieLogo from './PixieLogo';
+import ArchitectureDiagram from './ArchitectureDiagram';
 
 const taskIcons = {
   [TASKS.DENOISING]: AutoFixHighIcon,
@@ -150,6 +151,9 @@ export default function Dashboard() {
           </Grid>
         </Grid>
       </Paper>
+
+      {/* Architecture Diagram */}
+      <ArchitectureDiagram />
 
       {/* Model Categories */}
       {Object.entries(taskCategories).map(([category, tasks]) => (
