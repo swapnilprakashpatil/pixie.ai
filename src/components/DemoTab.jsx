@@ -296,7 +296,6 @@ export default function DemoTab() {
               variant="outlined"
               startIcon={<RestartAltIcon />}
               onClick={handleReset}
-              disabled={processing}
             >
               Reset
             </Button>

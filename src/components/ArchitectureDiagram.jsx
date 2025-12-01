@@ -99,7 +99,8 @@ const ArchitectureDiagram = () => {
       title: "HuggingFace",
       details: "AI model hub providing pre-trained models. Models are loaded on-demand and cached locally.",
       color: "#ff9d00",
-      position: { top: '38%', left: '10%' }
+      position: { top: '38%', left: '10%' },
+      emoji: true
     }
   };
 
@@ -120,7 +121,7 @@ const ArchitectureDiagram = () => {
   ];
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', height: '600px', mb: 4 }}>
+    <Box sx={{ position: 'relative', width: '100%', height: '1200px', mb: 4 }}>
       <Paper 
         elevation={3} 
         sx={{ 
@@ -162,16 +163,7 @@ const ArchitectureDiagram = () => {
                   markerEnd="url(#arrowhead)"
                   style={{ animationDelay: `${idx * 0.2}s` }}
                 />
-                <text
-                  x={(parseFloat(fromPos.left) + parseFloat(toPos.left)) / 2}
-                  y={(parseFloat(fromPos.top) + parseFloat(toPos.top)) / 2}
-                  fill="rgba(148, 163, 184, 0.8)"
-                  fontSize="10"
-                  textAnchor="middle"
-                  className="flow-label"
-                >
-                  {flow.label}
-                </text>
+                {/* Flow labels hidden to reduce clutter */}
               </g>
             );
           })}
@@ -243,17 +235,21 @@ const ArchitectureDiagram = () => {
                 justifyContent: 'center',
                 gap: 0.5,
                 cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
                 border: `2px solid ${component.color}`,
                 boxShadow: `0 0 20px ${component.color}66`,
                 '&:hover': {
-                  transform: 'translate(-50%, -50%) scale(1.08)',
+                  transform: 'translate(-50%, -50%) scale(1.05)',
                   boxShadow: `0 0 25px ${component.color}`,
                   zIndex: 10
                 }
               }}
             >
-              <IconComponent sx={{ fontSize: 28, color: '#fff', mb: 0.5 }} />
+              {component.emoji ? (
+                <Typography sx={{ fontSize: 32, mb: 0.5 }}>🤗</Typography>
+              ) : (
+                <IconComponent sx={{ fontSize: 28, color: '#fff', mb: 0.5 }} />
+              )}
               <Typography 
                 variant="body2" 
                 sx={{ 

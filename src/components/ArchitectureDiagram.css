@@ -25,7 +25,7 @@
     transform: scale(1);
   }
   50% {
-    transform: scale(1.02);
+    transform: scale(1.01);
   }
 }
 
@@ -212,9 +212,9 @@
 
 /* Architecture nodes */
 .architecture-node {
-  animation: nodePulse 4s ease-in-out infinite;
+  animation: nodePulse 6s ease-in-out infinite;
   backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .architecture-node.active {
