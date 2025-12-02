@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
-import { Paper, Box, Button, Typography, Grid, CircularProgress, Alert, Slider, Chip, Stepper, Step, StepLabel, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Paper, Box, Button, Typography, Grid, CircularProgress, Alert, Slider, Chip, Stepper, Step, StepLabel, Select, MenuItem, FormControl, InputLabel, Snackbar } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import DownloadIcon from '@mui/icons-material/Download';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useDropzone } from 'react-dropzone';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { useAppStore } from '../store/appStore';
@@ -45,6 +46,10 @@ export default function DemoTab() {
     bgRemovalThreshold,
     bgRemovalFeathering,
     bgRemovalOutputMode,
+    captioningMaxLength,
+    captioningNumBeams,
+    captioningTemperature,
+    generatedCaption,
     setOriginalImage,
     setProcessedImage,
     setProcessing,
@@ -73,6 +78,10 @@ export default function DemoTab() {
     setBgRemovalThreshold,
     setBgRemovalFeathering,
     setBgRemovalOutputMode,
+    setCaptioningMaxLength,
+    setCaptioningNumBeams,
+    setCaptioningTemperature,
+    setGeneratedCaption,
     addLog,
     resetImageState,
     setLoadProgress: setLoadProgressStore,
@@ -84,6 +93,8 @@ export default function DemoTab() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [originalImageDimensions, setOriginalImageDimensions] = useState(null);
   const [processedImageDimensions, setProcessedImageDimensions] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   const steps = ['Load AI Model', 'Process Image', 'Generate Result'];
 
@@ -93,12 +104,6 @@ export default function DemoTab() {
     ? ALTERNATIVE_MODELS[selectedModel]
     : baseModelInfo;
   const hasMultipleModels = baseModelInfo?.models && baseModelInfo.models.length > 1;
-
-  console.log('📊 DemoTab Display - selectedModel:', selectedModel);
-  console.log('📊 DemoTab Display - currentModelInfo.name:', currentModelInfo?.name);
-  console.log('📊 DemoTab Display - hasMultipleModels:', hasMultipleModels);
-  console.log('📊 DemoTab Display - currentTask:', currentTask);
-  console.log('📊 DemoTab Display - showing colorization sliders?:', currentTask === 'colorization');
 
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -160,10 +165,7 @@ export default function DemoTab() {
       : baseModelInfo;
     
     const modelId = selectedModel || baseModelInfo.id;
-    console.log('🔍 DemoTab - selectedModel from store:', selectedModel);
-    console.log('🔍 DemoTab - baseModelInfo.id:', baseModelInfo.id);
-    console.log('🔍 DemoTab - final modelId:', modelId);
-    console.log('🔍 DemoTab - modelId includes detr-resnet?:', modelId && modelId.includes('detr-resnet'));
+    addLog(`🔍 Model Selection - Using: ${modelId}`, 'info');
     const startTime = performance.now();
     
     // Enhanced logging with full details
@@ -245,7 +247,10 @@ export default function DemoTab() {
         bgRemovalMethod,
         bgRemovalThreshold,
         bgRemovalFeathering,
-        bgRemovalOutputMode
+        bgRemovalOutputMode,
+        captioningMaxLength,
+        captioningNumBeams,
+        captioningTemperature
       );
       
       clearInterval(progressInterval);
@@ -254,6 +259,26 @@ export default function DemoTab() {
       const processingDuration = performance.now() - processingStartTime;
       
       addLog(`⚡ Processing completed in ${formatTime(processingDuration)}`, 'success');
+      
+      // Handle image captioning result (text output)
+      if (currentTask === 'image-captioning' && result && typeof result === 'object' && result.type === 'caption') {
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+        addLog(`🎬 STEP 3/3: Caption Generated`, 'info');
+        addLog(`📝 Generated Caption: "${result.caption}"`, 'success');
+        setGeneratedCaption(result.caption);
+        setActiveStep(3);
+        
+        const totalTime = performance.now() - startTime;
+        addLog(`⏱️ Total Processing Time: ${formatTime(totalTime)}`, 'success');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+        addLog(`🎉 ${currentTask.toUpperCase()} completed successfully!`, 'success');
+        addLog(`💡 Caption can be used for: Alt text, SEO, Content management`, 'info');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+        
+        setProcessing(false);
+        setProcessingTime(totalTime);
+        return;
+      }
       
       // Get processed image dimensions
       addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
@@ -337,6 +362,10 @@ export default function DemoTab() {
     setBgRemovalThreshold(0.5); // Balanced
     setBgRemovalFeathering(3); // Moderate
     setBgRemovalOutputMode('transparent'); // Default output
+    setCaptioningMaxLength(50); // Detailed
+    setCaptioningNumBeams(4); // High quality
+    setCaptioningTemperature(1.0); // Balanced
+    setGeneratedCaption(null); // Clear caption
     
     addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
     addLog('🔄 Workspace reset to initial state', 'info');
@@ -374,8 +403,7 @@ export default function DemoTab() {
       addLog(`📊 Resolution: ${processedImageDimensions.width}×${processedImageDimensions.height}px`, 'info');
       addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
     } catch (err) {
-      console.error('Failed to copy image:', err);
-      addLog('❌ Failed to copy image to clipboard', 'error');
+      addLog(`❌ Failed to copy image: ${err.message}`, 'error');
       addLog('💡 Tip: Make sure your browser supports clipboard API', 'info');
     }
   };
@@ -953,6 +981,79 @@ export default function DemoTab() {
             </Paper>
           )}
 
+          {/* Image Captioning Controls */}
+          {currentTask === 'image-captioning' && (
+            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Maximum Caption Length: {captioningMaxLength} tokens
+              </Typography>
+              <Slider
+                value={captioningMaxLength}
+                onChange={(e, value) => setCaptioningMaxLength(value)}
+                min={10}
+                max={100}
+                step={5}
+                marks={[
+                  { value: 10, label: 'Brief' },
+                  { value: 30, label: 'Short' },
+                  { value: 50, label: 'Detailed' },
+                  { value: 75, label: 'Long' },
+                  { value: 100, label: 'Very Long' },
+                ]}
+                disabled={processing || modelLoading}
+                valueLabelDisplay="auto"
+                sx={{ mb: 3 }}
+              />
+
+              <Typography variant="subtitle2" gutterBottom>
+                Quality (Beam Search): {captioningNumBeams} beams
+              </Typography>
+              <Slider
+                value={captioningNumBeams}
+                onChange={(e, value) => setCaptioningNumBeams(value)}
+                min={1}
+                max={5}
+                step={1}
+                marks={[
+                  { value: 1, label: 'Fast' },
+                  { value: 2, label: 'Good' },
+                  { value: 4, label: 'Better' },
+                  { value: 5, label: 'Best' },
+                ]}
+                disabled={processing || modelLoading}
+                valueLabelDisplay="auto"
+                sx={{ mb: 3 }}
+              />
+
+              <Typography variant="subtitle2" gutterBottom>
+                Creativity: {captioningTemperature.toFixed(1)}
+              </Typography>
+              <Slider
+                value={captioningTemperature}
+                onChange={(e, value) => setCaptioningTemperature(value)}
+                min={0.1}
+                max={2.0}
+                step={0.1}
+                marks={[
+                  { value: 0.1, label: 'Precise' },
+                  { value: 0.5, label: 'Safe' },
+                  { value: 1.0, label: 'Balanced' },
+                  { value: 1.5, label: 'Creative' },
+                  { value: 2.0, label: 'Very Creative' },
+                ]}
+                disabled={processing || modelLoading}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => value.toFixed(1)}
+                sx={{ mb: 2 }}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                {captioningTemperature < 0.7 && 'More deterministic, factual descriptions'}
+                {captioningTemperature >= 0.7 && captioningTemperature < 1.3 && 'Balanced accuracy and variety'}
+                {captioningTemperature >= 1.3 && 'More creative, varied descriptions'}
+              </Typography>
+            </Paper>
+          )}
+
           {/* Background Removal Controls */}
           {currentTask === 'background-removal' && (
             <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -1102,7 +1203,7 @@ export default function DemoTab() {
           )}
 
           <Grid container spacing={2}>
-            <Grid item xs={12} md={processedImage ? 6 : 12}>
+            <Grid size={{ xs: 12, md: processedImage ? 6 : 12 }}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant="subtitle2">
@@ -1141,11 +1242,36 @@ export default function DemoTab() {
                     </TransformComponent>
                   </TransformWrapper>
                 </Box>
+                
+                {/* Display generated caption for image captioning task */}
+                {currentTask === 'image-captioning' && generatedCaption && (
+                  <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'action.hover' }}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AutoAwesomeIcon fontSize="small" color="primary" />
+                      Generated Caption:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontStyle: 'italic', mt: 1 }}>
+                      "{generatedCaption}"
+                    </Typography>
+                    <Button
+                      size="small"
+                      startIcon={<ContentCopyIcon />}
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedCaption);
+                        setSnackbarMessage('Caption copied to clipboard!');
+                        setSnackbarOpen(true);
+                      }}
+                      sx={{ mt: 1 }}
+                    >
+                      Copy Caption
+                    </Button>
+                  </Paper>
+                )}
               </Paper>
             </Grid>
 
             {processedImage && (
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="subtitle2">
@@ -1264,6 +1390,15 @@ export default function DemoTab() {
         </Box>
       )}
     </Paper>
+    
+    {/* Snackbar for notifications */}
+    <Snackbar
+      open={snackbarOpen}
+      autoHideDuration={3000}
+      onClose={() => setSnackbarOpen(false)}
+      message={snackbarMessage}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+    />
     </Box>
   );
 }

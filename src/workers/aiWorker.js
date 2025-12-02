@@ -8,6 +8,16 @@ ort.env.logLevel = "error"; // Only show errors, not warnings
 const pipelineCache = new Map();
 
 /**
+ * Send log message to main thread for diagnostics
+ */
+function log(type, message) {
+  self.postMessage({
+    type: "log",
+    data: { type, message },
+  });
+}
+
+/**
  * Apply advanced image processing based on task type
  */
 async function processImageWithFilters(
@@ -84,7 +94,8 @@ async function processImageWithFilters(
         ctx.putImageData(imageData, 0, 0);
         break;
       case "inpainting":
-        console.log(
+        log(
+          "info",
           `🎨 Inpainting with guidance: ${inpaintingGuidanceScale}, steps: ${inpaintingInferenceSteps}, strength: ${inpaintingStrength}`
         );
         // Note: Full Stable Diffusion inpainting requires ONNX Runtime implementation
@@ -98,16 +109,17 @@ async function processImageWithFilters(
         break;
       case "object-detection":
         // Use ONNX-based object detection (YOLO or DETR based on modelId)
-        console.log("🔍 Object Detection - Model ID:", modelId);
-        console.log("🔍 Model ID type:", typeof modelId);
-        console.log("🔍 Model ID value:", JSON.stringify(modelId));
-        console.log(
+        log("info", "🔍 Object Detection - Model ID:", modelId);
+        log("info", "🔍 Model ID type:", typeof modelId);
+        log("info", "🔍 Model ID value:", JSON.stringify(modelId));
+        log(
+          "info",
           "🔍 Checking if includes detr-resnet:",
           modelId && modelId.includes("detr-resnet")
         );
         try {
           if (modelId && modelId.includes("detr-resnet")) {
-            console.log("✅ Using DETR detection");
+            log("info", "✅ Using DETR detection");
             await applyDETRDetection(
               ctx,
               imageBitmap,
@@ -119,7 +131,7 @@ async function processImageWithFilters(
               objectDetectionMaxDetections
             );
           } else {
-            console.log("✅ Using YOLO detection (modelId:", modelId, ")");
+            log("info", "✅ Using YOLO detection (modelId:", modelId, ")");
             await applyYOLODetection(
               ctx,
               imageBitmap,
@@ -131,7 +143,7 @@ async function processImageWithFilters(
             );
           }
         } catch (error) {
-          console.error("❌ Object detection failed:", error);
+          log("error", "❌ Object detection failed:", error);
           self.postMessage({
             type: "log",
             data: {
@@ -223,7 +235,7 @@ async function processImageWithFilters(
 function applyBilateralFilter(data, width, height, denoisingLevel = 50) {
   // If denoising is disabled (level 0), return immediately
   if (denoisingLevel === 0) {
-    console.log("⏭️ Denoising disabled (level 0)");
+    log("info", "⏭️ Denoising disabled (level 0)");
     return;
   }
 
@@ -238,7 +250,8 @@ function applyBilateralFilter(data, width, height, denoisingLevel = 50) {
   const sigma_s1 = 4 + 4 * scale; // 4-12 based on level
   const sigma_r1 = 40 + 35 * scale; // 40-110 based on level
 
-  console.log(
+  log(
+    "info",
     `🎨 Applying bilateral filter - Level: ${denoisingLevel}%, Sigma S1: ${sigma_s1.toFixed(
       1
     )}, Sigma R1: ${sigma_r1.toFixed(1)}`
@@ -460,7 +473,8 @@ function enhanceColors(data, width, height, intensity = 80, saturation = 70) {
   const intensityScale = intensity / 100; // 0.0 to 1.0
   const saturationScale = saturation / 100; // 0.0 to 1.0
 
-  console.log(
+  log(
+    "info",
     `🎨 Colorization settings - Intensity: ${intensity}%, Saturation: ${saturation}%`
   );
 
@@ -482,13 +496,15 @@ function enhanceColors(data, width, height, intensity = 80, saturation = 70) {
 
   isGrayscale = grayscaleCount / sampleSize > 0.9;
 
-  console.log(
+  log(
+    "info",
     `🔍 Colorization check: ${grayscaleCount}/${sampleSize} grayscale pixels = ${(
       (grayscaleCount / sampleSize) *
       100
     ).toFixed(1)}%`
   );
-  console.log(
+  log(
+    "info",
     `🎨 Treating as: ${
       isGrayscale ? "GRAYSCALE - will colorize" : "COLOR - will enhance"
     }`
@@ -496,13 +512,13 @@ function enhanceColors(data, width, height, intensity = 80, saturation = 70) {
 
   if (isGrayscale) {
     // Apply realistic photographic colorization
-    console.log("🎨 Applying photorealistic AI colorization");
+    log("info", "🎨 Applying photorealistic AI colorization");
 
     // Analyze image to detect regions (skin, fabric, background)
     const segmentMap = new Uint8Array(width * height); // 0=shadow, 1=skin, 2=fabric, 3=background
     const edgeMap = new Uint8Array(width * height);
 
-    console.log("🔍 Analyzing image structure and semantic regions");
+    log("info", "🔍 Analyzing image structure and semantic regions");
 
     // First pass: detect edges and segment regions
     for (let y = 1; y < height - 1; y++) {
@@ -562,7 +578,7 @@ function enhanceColors(data, width, height, intensity = 80, saturation = 70) {
       }
     }
 
-    console.log("🎨 Applying semantic-aware natural colorization");
+    log("info", "🎨 Applying semantic-aware natural colorization");
 
     // Second pass: apply colors based on semantic understanding
     for (let i = 0; i < data.length; i += 4) {
@@ -733,7 +749,7 @@ function enhanceColors(data, width, height, intensity = 80, saturation = 70) {
     }
 
     // Third pass: apply subtle color blending for smoothness
-    console.log("🎨 Applying color harmonization");
+    log("info", "🎨 Applying color harmonization");
     const tempData = new Uint8ClampedArray(data);
 
     for (let y = 1; y < height - 1; y++) {
@@ -777,10 +793,11 @@ function enhanceColors(data, width, height, intensity = 80, saturation = 70) {
       }
     }
 
-    console.log("✅ Photorealistic colorization complete");
+    log("info", "✅ Photorealistic colorization complete");
   } else {
     // For color images, enhance existing colors using saturation parameter
-    console.log(
+    log(
+      "info",
       `🎨 Detected color image - enhancing saturation by ${saturation}%`
     );
     for (let i = 0; i < data.length; i += 4) {
@@ -871,7 +888,8 @@ function enhanceColors(data, width, height, intensity = 80, saturation = 70) {
  * Advanced inpainting - detects and repairs scratches, tears, and damage
  */
 function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
-  console.log(
+  log(
+    "info",
     `🎨 Starting AI-powered inpainting - strength: ${Math.round(
       strength * 100
     )}%`
@@ -881,7 +899,8 @@ function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
   const damageMap = new Uint8Array(width * height);
 
   // Step 1: Multi-scale damage detection
-  console.log(
+  log(
+    "info",
     "🔍 Phase 1: Multi-scale damage analysis (scratches, tears, spots)"
   );
 
@@ -997,7 +1016,7 @@ function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
   }
 
   // Step 2: Aggressive expansion for complete damage coverage
-  console.log("🔧 Phase 2: Expanding damage regions (2-pixel radius)");
+  log("info", "🔧 Phase 2: Expanding damage regions (2-pixel radius)");
   const expandedMap = new Uint8Array(damageMap);
 
   // Expand damage regions by 2 pixels for complete coverage
@@ -1023,7 +1042,8 @@ function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
     if (expandedMap[i] === 1) damagedCount++;
   }
 
-  console.log(
+  log(
+    "info",
     `📊 Found ${damagedCount} damaged pixels (${(
       (damagedCount / (width * height)) *
       100
@@ -1031,7 +1051,7 @@ function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
   );
 
   // Step 3: Multi-pass diffusion-based inpainting (5 passes)
-  console.log("✨ Phase 3: Advanced diffusion inpainting (5 passes)");
+  log("info", "✨ Phase 3: Advanced diffusion inpainting (5 passes)");
 
   for (let pass = 0; pass < 5; pass++) {
     const passData = new Uint8ClampedArray(data);
@@ -1085,11 +1105,11 @@ function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
       }
     }
 
-    console.log(`  ✓ Pass ${pass + 1}/5 complete`);
+    log("info", `  ✓ Pass ${pass + 1}/5 complete`);
   }
 
   // Step 4: Structure-preserving bilateral smoothing
-  console.log("🎯 Phase 4: Structure-preserving smoothing");
+  log("info", "🎯 Phase 4: Structure-preserving smoothing");
 
   const finalData = new Uint8ClampedArray(data);
 
@@ -1149,7 +1169,8 @@ function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
 
   // Step 5: Blend with original based on strength parameter
   if (strength < 1.0) {
-    console.log(
+    log(
+      "info",
       `🎨 Phase 5: Blending inpainted result with original (${Math.round(
         strength * 100
       )}% strength)`
@@ -1174,7 +1195,7 @@ function applyEdgePreservingFilter(data, width, height, strength = 0.8) {
     }
   }
 
-  console.log("✅ Inpainting complete - scratches and damage repaired!");
+  log("info", "✅ Inpainting complete - scratches and damage repaired!");
 }
 
 /**
@@ -1208,17 +1229,18 @@ function enhanceImage(data) {
 async function loadModel(modelId, task, messageId) {
   const cacheKey = `${modelId}-${task}`;
 
-  console.log(
+  log(
+    "info",
     `🔧 loadModel called with modelId: "${modelId}", task: "${task}"`
   );
-  console.log(`🔧 Cache key: "${cacheKey}"`);
+  log("info", `🔧 Cache key: "${cacheKey}"`);
 
   if (pipelineCache.has(cacheKey)) {
-    console.log(`✅ Model ${modelId} already loaded from cache`);
+    log("info", `✅ Model ${modelId} already loaded from cache`);
     return true;
   }
 
-  console.log(`📥 Preparing ${task} processor for model ${modelId}...`);
+  log("info", `📥 Preparing ${task} processor for model ${modelId}...`);
 
   // Simulate loading with progress
   for (let i = 0; i <= 100; i += 10) {
@@ -1231,7 +1253,7 @@ async function loadModel(modelId, task, messageId) {
   }
 
   pipelineCache.set(cacheKey, true);
-  console.log(`✅ ${task} processor ready`);
+  log("info", `✅ ${task} processor ready`);
   return true;
 }
 
@@ -1271,7 +1293,8 @@ async function processImage(
     throw new Error("Model not loaded. Please load the model first.");
   }
 
-  console.log(
+  log(
+    "info",
     `🎨 Processing image with ${task} using model ${modelId}, denoising: ${denoisingLevel}, upscale: ${upscaleFactor}x, colorization: ${colorizationIntensity}/${colorizationSaturation}, inpainting: ${inpaintingGuidanceScale}/${inpaintingInferenceSteps}/${inpaintingStrength}, detection: ${objectDetectionConfidence}/${objectDetectionIOU}/${objectDetectionMaxDetections}, pose: ${poseEstimationConfidence}/${poseKeypointThreshold}/${poseMaxDetections}, masking: ${maskingEdgeThreshold}/${maskingSegmentationIntensity}/${maskingMorphologyStrength}, style: ${styleTransferStyle}/${styleTransferIntensity}, bgRemoval: ${bgRemovalMethod}/${bgRemovalThreshold}/${bgRemovalFeathering}/${bgRemovalOutputMode}`
   );
 
@@ -1303,7 +1326,7 @@ async function processImage(
     bgRemovalOutputMode
   );
 
-  console.log("✅ Image processing complete");
+  log("info", "✅ Image processing complete");
   return result;
 }
 
@@ -1319,7 +1342,8 @@ async function applyYOLODetection(
   iouThreshold = 0.5,
   maxDetections = 50
 ) {
-  console.log(
+  log(
+    "info",
     `🎯 Loading YOLOv11 ONNX model for object detection (conf: ${confidenceThreshold}, iou: ${iouThreshold}, max: ${maxDetections})...`
   );
 
@@ -1328,12 +1352,12 @@ async function applyYOLODetection(
     const modelUrl =
       "https://huggingface.co/aaurelions/yolo11n.onnx/resolve/main/yolo11n.onnx";
 
-    console.log("📥 Downloading YOLOv11 model...");
+    log("info", "📥 Downloading YOLOv11 model...");
     const session = await ort.InferenceSession.create(modelUrl, {
       executionProviders: ["wasm"],
     });
 
-    console.log("🔄 Preprocessing image for YOLO...");
+    log("info", "🔄 Preprocessing image for YOLO...");
 
     // YOLOv11 expects 640x640 input
     const modelSize = 640;
@@ -1360,7 +1384,7 @@ async function applyYOLODetection(
       modelSize,
     ]);
 
-    console.log("🔍 Running YOLO inference...");
+    log("info", "🔍 Running YOLO inference...");
     const feeds = { images: tensor };
     const results = await session.run(feeds);
 
@@ -1368,7 +1392,8 @@ async function applyYOLODetection(
     const outputName = session.outputNames[0];
     const output = results[outputName];
 
-    console.log(
+    log(
+      "info",
       `📦 YOLO output shape: ${output.dims.join("x")}, size: ${
         output.data.length
       }`
@@ -1385,9 +1410,10 @@ async function applyYOLODetection(
       maxDetections
     );
 
-    console.log(`✅ YOLOv11 detected ${detections.length} objects`);
+    log("info", `✅ YOLOv11 detected ${detections.length} objects`);
     if (detections.length > 0) {
-      console.log(
+      log(
+        "info",
         "Detected classes:",
         detections
           .map((d) => `${d.className} (${(d.confidence * 100).toFixed(0)}%)`)
@@ -1398,8 +1424,8 @@ async function applyYOLODetection(
     // Draw detections
     drawDetections(ctx, detections);
   } catch (error) {
-    console.error("❌ YOLO detection failed:", error);
-    console.log("⚠️ Falling back to basic detection");
+    log("error", "❌ YOLO detection failed:", error);
+    log("info", "⚠️ Falling back to basic detection");
 
     // Fallback to basic detection
     const imageData = ctx.getImageData(0, 0, width, height);
@@ -1420,7 +1446,8 @@ async function applyDETRDetection(
   iouThreshold = 0.5,
   maxDetections = 50
 ) {
-  console.log(
+  log(
+    "info",
     `🎯 Loading DETR (${modelId}) ONNX model for object detection (conf: ${confidenceThreshold}, iou: ${iouThreshold}, max: ${maxDetections})...`
   );
 
@@ -1428,12 +1455,12 @@ async function applyDETRDetection(
     // Use the Hugging Face model URL for DETR ResNet-50
     const modelUrl = `https://huggingface.co/${modelId}/resolve/main/onnx/model.onnx`;
 
-    console.log(`📥 Downloading DETR model from ${modelUrl}...`);
+    log("info", `📥 Downloading DETR model from ${modelUrl}...`);
     const session = await ort.InferenceSession.create(modelUrl, {
       executionProviders: ["wasm"],
     });
 
-    console.log("🔄 Preprocessing image for DETR...");
+    log("info", "🔄 Preprocessing image for DETR...");
 
     // DETR expects 64x64 input size based on the model requirements
     const modelSize = 64;
@@ -1478,11 +1505,11 @@ async function applyDETRDetection(
       modelSize,
     ]);
 
-    console.log("🔍 Running DETR inference...");
+    log("info", "🔍 Running DETR inference...");
     const feeds = { pixel_values: tensor, pixel_mask: maskTensor };
     const results = await session.run(feeds);
 
-    console.log("📦 DETR output keys:", Object.keys(results));
+    log("info", "📦 DETR output keys:", Object.keys(results));
 
     // DETR outputs logits and boxes
     const logits = results.logits || results.pred_logits;
@@ -1492,8 +1519,8 @@ async function applyDETRDetection(
       throw new Error("DETR model output format not recognized");
     }
 
-    console.log(`📦 DETR logits shape: ${logits.dims.join("x")}`);
-    console.log(`📦 DETR boxes shape: ${boxes.dims.join("x")}`);
+    log("info", `📦 DETR logits shape: ${logits.dims.join("x")}`);
+    log("info", `📦 DETR boxes shape: ${boxes.dims.join("x")}`);
 
     const detections = processDETROutput(
       logits.data,
@@ -1507,9 +1534,10 @@ async function applyDETRDetection(
       maxDetections
     );
 
-    console.log(`✅ DETR detected ${detections.length} objects`);
+    log("info", `✅ DETR detected ${detections.length} objects`);
     if (detections.length > 0) {
-      console.log(
+      log(
+        "info",
         "Detected classes:",
         detections
           .map((d) => `${d.className} (${(d.confidence * 100).toFixed(0)}%)`)
@@ -1520,7 +1548,7 @@ async function applyDETRDetection(
     // Draw detections
     drawDetections(ctx, detections);
   } catch (error) {
-    console.error("❌ DETR detection failed:", error);
+    log("error", "❌ DETR detection failed:", error);
     // Log error to event logs
     self.postMessage({
       type: "log",
@@ -1537,7 +1565,7 @@ async function applyDETRDetection(
         message: `Falling back to YOLOv11 model for object detection`,
       },
     });
-    console.log("⚠️ Falling back to YOLO detection");
+    log("info", "⚠️ Falling back to YOLO detection");
 
     // Fallback to YOLO
     await applyYOLODetection(ctx, imageBitmap, width, height);
@@ -1564,7 +1592,8 @@ function processDETROutput(
   const numQueries = logitsDims[1];
   const numClasses = logitsDims[2] - 1; // Subtract 1 for "no object" class
 
-  console.log(
+  log(
+    "info",
     `Processing DETR with ${numQueries} queries and ${numClasses} classes (conf: ${confidenceThreshold}, max: ${maxDetections})`
   );
 
@@ -1608,7 +1637,8 @@ function processDETROutput(
       confidence > confidenceThreshold &&
       !filterClasses.includes(className)
     ) {
-      console.log(
+      log(
+        "info",
         `DETR detection: ${className} with confidence ${confidence.toFixed(3)}`
       );
 
@@ -1641,7 +1671,8 @@ function processDETROutput(
     .slice(0, maxDetections);
 
   if (limited.length < detections.length) {
-    console.log(
+    log(
+      "info",
       `Limited DETR detections to top ${limited.length} (from ${detections.length})`
     );
   }
@@ -1664,7 +1695,8 @@ function processYOLOOutput(
 ) {
   const detections = [];
 
-  console.log(
+  log(
+    "info",
     `Processing YOLO output with dims: ${dims.join(
       "x"
     )} (conf: ${confidenceThreshold}, iou: ${iouThreshold}, max: ${maxDetections})`
@@ -1687,7 +1719,8 @@ function processYOLOOutput(
     transposed = true;
   }
 
-  console.log(
+  log(
+    "info",
     `Detections: ${numDetections}, Classes: ${numClasses}, Transposed: ${transposed}`
   );
 
@@ -1758,11 +1791,11 @@ function processYOLOOutput(
     }
   }
 
-  console.log(`Found ${detections.length} detections before NMS`);
+  log("info", `Found ${detections.length} detections before NMS`);
 
   // Apply Non-Maximum Suppression
   const filtered = applyNMS(detections, iouThreshold);
-  console.log(`${filtered.length} detections after NMS`);
+  log("info", `${filtered.length} detections after NMS`);
 
   // Apply max detections limit (keep top N by confidence)
   const limited = filtered
@@ -1770,7 +1803,8 @@ function processYOLOOutput(
     .slice(0, maxDetections);
 
   if (limited.length < filtered.length) {
-    console.log(
+    log(
+      "info",
       `Limited to top ${limited.length} detections (from ${filtered.length})`
     );
   }
@@ -1860,7 +1894,7 @@ function drawDetections(ctx, detections) {
     ctx.fillText(summaryText, 20, 35);
   }
 
-  console.log(`✅ Drew ${detectionCount} detection boxes`);
+  log("info", `✅ Drew ${detectionCount} detection boxes`);
 }
 
 // COCO dataset class names
@@ -1951,7 +1985,7 @@ const COCO_CLASSES = [
  * Object Detection using Advanced Computer Vision
  */
 async function applyObjectDetection(ctx, data, width, height) {
-  console.log("🎯 Applying advanced object detection...");
+  log("info", "🎯 Applying advanced object detection...");
 
   // Use enhanced multi-scale object detection
   const detectedObjects = detectObjectsAdvanced(data, width, height);
@@ -2039,7 +2073,8 @@ async function applyObjectDetection(ctx, data, width, height) {
     ctx.fillText(summaryText, 20, 35);
   }
 
-  console.log(
+  log(
+    "info",
     `✅ Detected ${detectionCount} objects with bounding boxes and labels`
   );
 }
@@ -2056,7 +2091,8 @@ async function applyPoseEstimation(
   poseKeypointThreshold = 0.2,
   poseMaxDetections = 10
 ) {
-  console.log(
+  log(
+    "info",
     `🧍 Applying pose estimation (confidence: ${poseEstimationConfidence}, keypoint threshold: ${poseKeypointThreshold}, max: ${poseMaxDetections})...`
   );
 
@@ -2069,7 +2105,7 @@ async function applyPoseEstimation(
   );
 
   if (bodyRegions.length === 0) {
-    console.log("⚠️ No person detected in image");
+    log("info", "⚠️ No person detected in image");
     return;
   }
 
@@ -2190,7 +2226,8 @@ async function applyPoseEstimation(
     ctx.fillText(summaryText, 20, 35);
   }
 
-  console.log(
+  log(
+    "info",
     `✅ Detected ${bodyRegions.length} person(s) with 17 keypoints each`
   );
 }
@@ -2206,7 +2243,8 @@ function applyImageMasking(
   segmentationIntensity = 0.7,
   morphologyStrength = 0.5
 ) {
-  console.log(
+  log(
+    "info",
     `🎭 Applying image masking (edge: ${edgeThreshold}, segmentation: ${segmentationIntensity}, morphology: ${morphologyStrength})...`
   );
 
@@ -2268,7 +2306,8 @@ function applyImageMasking(
     }
   }
 
-  console.log(
+  log(
+    "info",
     "✅ Masking complete - edges (cyan), regions (tinted), background (dark)"
   );
 }
@@ -2283,7 +2322,7 @@ function detectObjectsAdvanced(data, width, height) {
   const detections = [];
 
   // Multi-scale detection approach
-  console.log("🔍 Performing multi-scale object detection...");
+  log("info", "🔍 Performing multi-scale object detection...");
 
   // 1. Detect people using advanced skin tone + shape analysis
   const personDetections = detectPeopleAdvanced(data, width, height);
@@ -2318,7 +2357,8 @@ function detectObjectsAdvanced(data, width, height) {
   // Apply Non-Maximum Suppression to remove overlapping detections
   const filteredDetections = applyNMS(confidentDetections, 0.5);
 
-  console.log(
+  log(
+    "info",
     `✅ Detected ${filteredDetections.length} objects after filtering and NMS`
   );
 
@@ -4048,7 +4088,8 @@ async function applyStyleTransfer(
   selectedStyle = "picasso",
   intensity = 0.8
 ) {
-  console.log(
+  log(
+    "info",
     `🎨 Applying ${selectedStyle} style transfer (intensity: ${Math.round(
       intensity * 100
     )}%)...`
@@ -4886,7 +4927,8 @@ async function applyBackgroundRemoval(
   feathering = 3,
   outputMode = "transparent"
 ) {
-  console.log(
+  log(
+    "info",
     `🎯 Applying background removal: ${method}, threshold: ${threshold}, feathering: ${feathering}, output: ${outputMode}`
   );
 
@@ -5745,7 +5787,7 @@ self.onmessage = async (e) => {
       throw new Error(`Unknown message type: ${type}`);
     }
   } catch (error) {
-    console.error("Worker error:", error);
+    log("error", "Worker error:", error);
     self.postMessage({
       id,
       type: "error",
@@ -5754,4 +5796,4 @@ self.onmessage = async (e) => {
   }
 };
 
-console.log("🚀 AI Worker initialized");
+log("info", "🚀 AI Worker initialized");

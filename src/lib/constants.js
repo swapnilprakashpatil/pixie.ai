@@ -9,7 +9,7 @@ export const TASKS = {
   POSE_ESTIMATION: "pose-estimation",
   IMAGE_MASKING: "image-masking",
   STYLE_TRANSFER: "style-transfer",
-  AI_IMAGE_GEN: "ai-image-generation",
+  IMAGE_CAPTIONING: "image-captioning",
   BG_REMOVAL: "background-removal",
   IMAGE_TO_SKETCH: "image-to-sketch",
 };
@@ -290,36 +290,57 @@ export const MODELS = {
       "Creative design projects",
     ],
   },
-  [TASKS.AI_IMAGE_GEN]: {
-    id: "stable-diffusion-img2img",
-    name: "AI Image Generation (Stable Diffusion)",
+  [TASKS.IMAGE_CAPTIONING]: {
+    id: "Xenova/vit-gpt2-image-captioning",
+    name: "Image Captioning (ViT-GPT2)",
     description:
-      "Generate stunning variations of your image using AI - reimagine scenes, change moods, or create entirely new artistic interpretations.",
-    task: "image-generation",
+      "Generate natural language descriptions of your images using state-of-the-art vision-language models - perfect for accessibility, SEO, and content management.",
+    task: "image-captioning",
+    models: [
+      {
+        id: "Xenova/vit-gpt2-image-captioning",
+        name: "ViT-GPT2 (Fast & Accurate)",
+        description: "Fast inference with good quality captions",
+      },
+      {
+        id: "Xenova/blip-image-captioning-base",
+        name: "BLIP Base (Detailed)",
+        description: "More detailed descriptions, balanced speed",
+      },
+      {
+        id: "Xenova/blip-image-captioning-large",
+        name: "BLIP Large (Most Detailed)",
+        description: "Highest quality, most comprehensive captions",
+      },
+    ],
     processingSteps: {
       loading:
-        "Loading Stable Diffusion XL model - State-of-the-art generative AI for photorealistic image synthesis",
+        "Loading Vision Transformer + GPT-2 captioning model - Advanced vision-language architecture for natural image descriptions",
       processing:
-        "Analyzing image semantics and generating AI-powered variations with enhanced details and creativity",
+        "Analyzing visual features: detecting objects, scenes, actions, and relationships using transformer attention mechanisms",
       generating:
-        "Finalizing high-quality AI-generated image with improved composition and artistic enhancements",
+        "Generating fluent natural language caption with proper grammar, context awareness, and descriptive detail",
     },
     features: [
-      "AI-powered image variations",
-      "Scene enhancement and reimagining",
-      "Mood and atmosphere transformation",
-      "Creative interpretations",
+      "Natural language descriptions",
+      "Object and scene recognition",
+      "Action and relationship detection",
+      "Context-aware captioning",
+      "Multiple caption lengths",
+      "Beam search for quality",
     ],
     limitations: [
-      "May introduce unexpected elements",
-      "Results can be unpredictable",
-      "Best with well-defined subjects",
+      "May miss fine details",
+      "Context interpretation varies",
+      "Best with common objects/scenes",
     ],
     useCases: [
-      "Creative concept exploration",
-      "Marketing material generation",
-      "Artistic inspiration",
-      "Content variation creation",
+      "Image accessibility (alt text)",
+      "SEO optimization",
+      "Content management and tagging",
+      "Social media automation",
+      "Visual search indexing",
+      "Dataset annotation",
     ],
   },
   [TASKS.BG_REMOVAL]: {
@@ -397,6 +418,79 @@ export const TABS = {
 
 // Alternative model configurations
 export const ALTERNATIVE_MODELS = {
+  "Xenova/blip-image-captioning-base": {
+    id: "Xenova/blip-image-captioning-base",
+    name: "BLIP Base Image Captioning",
+    description:
+      "Generate detailed natural language descriptions using BLIP (Bootstrapping Language-Image Pre-training) base model for accurate and descriptive captions.",
+    task: "image-captioning",
+    processingSteps: {
+      loading:
+        "Loading BLIP Base captioning model - Bootstrapped vision-language model with enhanced image understanding capabilities",
+      processing:
+        "Analyzing image using BLIP's vision encoder to extract detailed visual features, object relationships, and scene context",
+      generating:
+        "Generating descriptive caption using language decoder with attention mechanisms for coherent and detailed descriptions",
+    },
+    features: [
+      "Detailed descriptions",
+      "Better object recognition",
+      "Enhanced scene understanding",
+      "Context-aware generation",
+      "Bootstrapped pre-training",
+      "Vision-language alignment",
+    ],
+    limitations: [
+      "Slightly slower than ViT-GPT2",
+      "May be verbose for simple images",
+      "Larger model size",
+    ],
+    useCases: [
+      "Detailed image descriptions",
+      "Accessibility (comprehensive alt text)",
+      "Content management systems",
+      "E-commerce product descriptions",
+      "Educational content",
+      "Visual documentation",
+    ],
+  },
+  "Xenova/blip-image-captioning-large": {
+    id: "Xenova/blip-image-captioning-large",
+    name: "BLIP Large Image Captioning",
+    description:
+      "Generate highly detailed and accurate natural language descriptions using BLIP large model - the most comprehensive captioning solution for complex images.",
+    task: "image-captioning",
+    processingSteps: {
+      loading:
+        "Loading BLIP Large captioning model - Advanced vision-language architecture with maximum descriptive capability and accuracy",
+      processing:
+        "Deep visual analysis using BLIP's large-scale vision encoder to capture fine details, subtle relationships, and complex scene compositions",
+      generating:
+        "Generating comprehensive caption with rich vocabulary, nuanced descriptions, and detailed scene understanding for maximum informativeness",
+    },
+    features: [
+      "Most detailed captions",
+      "Superior object detection",
+      "Advanced scene comprehension",
+      "Rich vocabulary usage",
+      "Fine-grained details",
+      "Best accuracy overall",
+    ],
+    limitations: [
+      "Slower inference time",
+      "Larger model download",
+      "Higher memory usage",
+      "May be overly detailed for simple needs",
+    ],
+    useCases: [
+      "Professional content creation",
+      "Academic research",
+      "High-quality alt text generation",
+      "Visual content analysis",
+      "Complex scene description",
+      "Premium accessibility features",
+    ],
+  },
   "Qwen/Qwen-Image": {
     id: "Qwen/Qwen-Image",
     name: "Qwen Image Colorization",

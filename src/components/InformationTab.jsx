@@ -21,7 +21,6 @@ export default function InformationTab() {
 
   const handleModelChange = (event, newModelId) => {
     if (newModelId !== null) {
-      console.log('🔧 InformationTab - Setting model to:', newModelId);
       setSelectedModel(newModelId);
     }
   };

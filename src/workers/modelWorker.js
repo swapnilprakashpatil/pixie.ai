@@ -189,7 +189,10 @@ self.addEventListener("message", async (event) => {
         break;
 
       default:
-        console.warn("Unknown message type:", type);
+        self.postMessage({
+          type: "log",
+          data: { type: "warning", message: `Unknown message type: ${type}` },
+        });
     }
   } catch (error) {
     self.postMessage({

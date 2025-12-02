@@ -45,6 +45,10 @@ export const useAppStore = create((set) => ({
   bgRemovalThreshold: 0.5, // 0-1, threshold for foreground detection (0.5 = balanced)
   bgRemovalFeathering: 3, // 0-10, edge feathering/smoothing (3 = moderate)
   bgRemovalOutputMode: "transparent", // Output mode: transparent, checkerboard, white, black, blur
+  captioningMaxLength: 50, // 10-100, maximum caption length in tokens (50 = detailed)
+  captioningNumBeams: 4, // 1-5, beam search width for quality (4 = high quality)
+  captioningTemperature: 1.0, // 0.1-2.0, generation creativity (1.0 = balanced)
+  generatedCaption: null, // Stores the generated caption text
 
   // Diagnostics
   logs: [],
@@ -113,6 +117,11 @@ export const useAppStore = create((set) => ({
   setBgRemovalThreshold: (bgRemovalThreshold) => set({ bgRemovalThreshold }),
   setBgRemovalFeathering: (bgRemovalFeathering) => set({ bgRemovalFeathering }),
   setBgRemovalOutputMode: (bgRemovalOutputMode) => set({ bgRemovalOutputMode }),
+  setCaptioningMaxLength: (captioningMaxLength) => set({ captioningMaxLength }),
+  setCaptioningNumBeams: (captioningNumBeams) => set({ captioningNumBeams }),
+  setCaptioningTemperature: (captioningTemperature) =>
+    set({ captioningTemperature }),
+  setGeneratedCaption: (generatedCaption) => set({ generatedCaption }),
 
   addLog: (message, type = "info") =>
     set((state) => ({

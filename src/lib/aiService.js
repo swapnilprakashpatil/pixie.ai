@@ -41,7 +41,8 @@ function initWorker() {
   };
 
   worker.onerror = (error) => {
-    console.error("❌ Worker error:", error);
+    const { addLog } = useAppStore.getState();
+    addLog("error", `Worker error: ${error.message || error}`);
   };
 
   return worker;
@@ -71,14 +72,15 @@ function sendWorkerMessage(type, data, onProgress) {
  * Load and cache a pipeline for a specific task
  */
 export async function loadPipeline(modelId, task, onProgress) {
-  console.log(`📥 Loading model: ${modelId} for task: ${task}`);
+  const { addLog } = useAppStore.getState();
+  addLog("info", `📥 Loading model: ${modelId} for task: ${task}`);
 
   try {
     await sendWorkerMessage("load", { modelId, task }, onProgress);
-    console.log(`✅ Model ${modelId} loaded successfully`);
+    addLog("success", `✅ Model ${modelId} loaded successfully`);
     return true;
   } catch (error) {
-    console.error("❌ Pipeline loading error:", error);
+    addLog("error", `❌ Pipeline loading error: ${error.message}`);
     throw new Error(`Failed to load model: ${error.message}`);
   }
 }
@@ -113,7 +115,9 @@ export async function processImage(
   bgRemovalFeathering = 3,
   bgRemovalOutputMode = "transparent"
 ) {
-  console.log(
+  const { addLog } = useAppStore.getState();
+  addLog(
+    "info",
     `🎨 Processing image with ${modelId}, denoising: ${denoisingLevel}, upscale: ${upscaleFactor}x, colorization: ${colorizationIntensity}/${colorizationSaturation}, inpainting: ${inpaintingGuidanceScale}/${inpaintingInferenceSteps}/${inpaintingStrength}, detection: ${objectDetectionConfidence}/${objectDetectionIOU}/${objectDetectionMaxDetections}, pose: ${poseEstimationConfidence}/${poseKeypointThreshold}/${poseMaxDetections}, masking: ${maskingEdgeThreshold}/${maskingSegmentationIntensity}/${maskingMorphologyStrength}, style: ${styleTransferStyle}/${styleTransferIntensity}, bgRemoval: ${bgRemovalMethod}/${bgRemovalThreshold}/${bgRemovalFeathering}/${bgRemovalOutputMode}`
   );
 
@@ -146,10 +150,10 @@ export async function processImage(
       bgRemovalOutputMode,
     });
 
-    console.log("✅ Image processing complete");
+    addLog("success", "✅ Image processing complete");
     return result.imageUrl;
   } catch (error) {
-    console.error("❌ Processing error:", error);
+    addLog("error", `❌ Processing error: ${error.message}`);
     throw new Error(`Failed to process image: ${error.message}`);
   }
 }
@@ -163,5 +167,6 @@ export function clearCache() {
     worker = null;
   }
   pendingMessages.clear();
-  console.log("🗑️ Worker terminated and cache cleared");
+  const { addLog } = useAppStore.getState();
+  addLog("info", "🗑️ Worker terminated and cache cleared");
 }

@@ -143,7 +143,7 @@ export const detectCapabilities = () => {
       capabilities.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     }
   } catch (e) {
-    console.error("WebGL detection failed:", e);
+    // WebGL detection failed silently
   }
 
   return capabilities;
@@ -165,7 +165,7 @@ export const getGPUInfo = async () => {
         };
       }
     } catch (e) {
-      console.error("GPU info retrieval failed:", e);
+      // GPU info retrieval failed silently
     }
   }
   return null;
