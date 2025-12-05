@@ -17,29 +17,31 @@ export const TASKS = {
 // Model configurations for each task
 export const MODELS = {
   [TASKS.DENOISING]: {
-    id: "Xenova/denoising-diffusion-pytorch",
-    name: "Denoising Model",
+    id: "bilateral-filter-denoising",
+    name: "Bilateral Filter Denoising",
     description:
-      "Removes noise and artifacts from images while preserving important details.",
+      "Removes Gaussian and salt-pepper noise while preserving edges using advanced bilateral filtering.",
     task: "image-to-image",
     processingSteps: {
       loading:
-        "Loading Denoising Diffusion model - A probabilistic denoising network that iteratively removes noise artifacts",
+        "Loading bilateral filter denoising algorithm - Multi-pass edge-preserving smoothing with adaptive parameters",
       processing:
-        "Applying bilateral filtering algorithm to reduce Gaussian noise while preserving edges and fine details",
+        "Applying aggressive bilateral filtering to reduce Gaussian noise while preserving edges and fine details",
       generating:
-        "Reconstructing clean image by combining denoised components and applying edge-preserving smoothing",
+        "Reconstructing clean image with preserved edges using multiple denoising passes and adaptive thresholds",
     },
     features: [
       "Gaussian noise reduction",
       "Salt and pepper noise removal",
-      "Detail preservation",
       "Edge-aware filtering",
+      "Detail preservation",
+      "Adjustable denoising strength (0-100%)",
+      "Multi-pass processing",
     ],
     limitations: [
-      "May struggle with extreme noise levels",
-      "Processing time increases with image size",
-      "Works best with RGB images",
+      "Canvas-based processing (no AI model)",
+      "Processing time increases with level",
+      "May soften extreme details at high levels",
     ],
     useCases: [
       "Old photo restoration",
@@ -49,29 +51,31 @@ export const MODELS = {
     ],
   },
   [TASKS.SUPER_RESOLUTION]: {
-    id: "Xenova/swin2SR-classical-sr-x2-64",
-    name: "Super-Resolution Model (Swin2SR)",
+    id: "bicubic-upscaling-unsharp",
+    name: "Bicubic Upscaling with Sharpening",
     description:
-      "Enhances image resolution using advanced transformer-based upscaling.",
+      "Upscales images up to 4x using high-quality bicubic interpolation and adaptive unsharp masking for detail enhancement.",
     task: "image-to-image",
     processingSteps: {
       loading:
-        "Loading Swin2SR transformer model - A state-of-the-art vision transformer for 2x image super-resolution",
+        "Loading bicubic upscaling engine - High-quality image smoothing algorithm with adaptive sharpening",
       processing:
-        "Upscaling image using bicubic interpolation and applying deep learning-based detail reconstruction",
+        "Upscaling image using bicubic interpolation with high-quality settings for smooth gradients",
       generating:
-        "Applying unsharp mask sharpening and enhancing high-frequency details for crisp 2x resolution output",
+        "Applying adaptive unsharp mask sharpening to enhance edges and high-frequency details (strength scales with upscale factor)",
     },
     features: [
-      "2x resolution enhancement",
-      "Transformer-based architecture",
-      "Detail reconstruction",
+      "Adjustable upscale factor (1x-4x)",
+      "Bicubic interpolation",
+      "Adaptive unsharp mask sharpening",
       "Edge enhancement",
+      "Detail reconstruction",
+      "High-quality smoothing",
     ],
     limitations: [
-      "Fixed 2x upscaling factor",
-      "May introduce artifacts in highly compressed images",
-      "Requires significant GPU memory",
+      "Canvas-based (no AI transformer model)",
+      "Cannot add details that don't exist",
+      "May introduce slight artifacts at 4x",
     ],
     useCases: [
       "Photo enlargement",
@@ -81,33 +85,35 @@ export const MODELS = {
     ],
   },
   [TASKS.COLORIZATION]: {
-    id: "semantic-colorization-engine",
-    name: "Photorealistic Colorization AI",
+    id: "semantic-canvas-colorization",
+    name: "Semantic Canvas Colorization",
     description:
-      "Advanced semantic segmentation colorization using region analysis for natural skin tones, fabrics, and backgrounds.",
+      "Converts black-and-white images to color using canvas-based semantic region analysis with skin tone detection, fabric identification, and spatial context awareness.",
     task: "image-colorization",
     models: [
-      { id: "semantic-colorization-engine", name: "Semantic Colorization" },
-      { id: "Qwen/Qwen-Image", name: "Qwen Image Colorization" },
+      { id: "semantic-canvas-colorization", name: "Canvas Colorization" },
     ],
     processingSteps: {
       loading:
-        "Loading semantic colorization engine - Multi-pass region detector with photographic color priors for realistic results",
+        "Loading semantic colorization engine - Canvas-based region segmentation with photographic color palette application",
       processing:
-        "Analyzing image structure: detecting skin regions, fabric textures, shadows, and backgrounds using edge and variance analysis",
+        "Analyzing image structure: detecting skin regions, fabric textures, shadows, and backgrounds using Sobel edge detection and local variance analysis",
       generating:
-        "Applying photographic color palettes with bilateral filtering and color harmonization for natural, film-like colorization",
+        "Applying photographic color palettes with semantic-aware color assignment and spatial harmonization for natural colorization",
     },
     features: [
-      "Semantic region segmentation",
-      "Natural skin tone detection",
+      "Semantic region segmentation (skin, fabric, shadow, background)",
+      "Natural skin tone detection and application",
       "Fabric and texture analysis",
       "Spatial context awareness",
+      "Adjustable intensity (0-100%)",
+      "Adjustable saturation (0-100%)",
     ],
     limitations: [
-      "Color choices based on common scene assumptions",
-      "May not match original colors exactly",
-      "Works best with outdoor/natural scenes",
+      "Canvas-based (no deep learning model)",
+      "Color choices based on semantic heuristics",
+      "May not match original historical colors",
+      "Works best with natural outdoor scenes and portraits",
     ],
     useCases: [
       "Historical photo restoration",
@@ -117,35 +123,37 @@ export const MODELS = {
     ],
   },
   [TASKS.INPAINTING]: {
-    id: "Xenova/stable-diffusion-2-inpainting",
-    name: "Inpainting Model (Stable Diffusion)",
+    id: "sobel-edge-inpainting",
+    name: "Edge-Preserving Inpainting",
     description:
-      "Fills in missing or damaged parts of images with AI-generated content.",
+      "Fills missing or damaged parts using Sobel edge detection and gradient-domain blending techniques.",
     task: "image-to-image",
     processingSteps: {
       loading:
-        "Loading Stable Diffusion 2 inpainting model - Generative AI for context-aware image reconstruction",
+        "Loading Sobel edge detection inpainting engine - Gradient-based image reconstruction with boundary-aware processing",
       processing:
         "Applying edge-preserving Sobel filter to detect boundaries and smooth regions while maintaining structural integrity",
       generating:
         "Blending processed regions seamlessly with original content using gradient-domain fusion techniques",
     },
     features: [
-      "Context-aware filling",
+      "Sobel edge detection",
+      "Gradient-domain fusion",
       "Seamless blending",
-      "Texture synthesis",
-      "Object removal capability",
+      "Structure preservation",
+      "Adjustable guidance scale",
+      "Variable inference steps",
     ],
     limitations: [
-      "May generate unexpected results",
-      "Processing time varies by masked area",
-      "Requires mask definition",
+      "Canvas-based (no generative AI model)",
+      "Cannot generate new content",
+      "Best for smooth regions",
     ],
     useCases: [
       "Photo repair and restoration",
-      "Object removal",
+      "Scratch removal",
       "Damage correction",
-      "Image editing and manipulation",
+      "Smooth region filling",
     ],
   },
   [TASKS.OBJECT_DETECTION]: {
@@ -195,35 +203,38 @@ export const MODELS = {
     ],
   },
   [TASKS.POSE_ESTIMATION]: {
-    id: "pose-estimation-movenet",
-    name: "Human Pose Estimation",
+    id: "canvas-pose-keypoint-detection",
+    name: "Canvas-based Pose Detection",
     description:
-      "Detects human body keypoints and skeleton structure for pose analysis.",
+      "Detects human body keypoints using skin tone analysis and body structure patterns for pose visualization.",
     task: "pose-estimation",
     processingSteps: {
       loading:
-        "Loading MoveNet pose estimation model - Lightning-fast keypoint detection for human pose analysis",
+        "Loading pose keypoint detection algorithm - Skin tone analysis combined with body structure pattern recognition",
       processing:
-        "Detecting 17 body keypoints including joints, head, and torso with confidence scores",
+        "Detecting body regions using skin tone analysis, identifying 17 keypoint candidates through geometric patterns",
       generating:
-        "Rendering skeletal overlay with joint connections and keypoint visualization",
+        "Rendering skeletal overlay with joint connections and keypoint visualization with confidence indicators",
     },
     features: [
-      "17 keypoint detection",
+      "17 keypoint detection (estimated)",
+      "Skin tone-based person detection",
       "Skeletal structure mapping",
-      "Confidence scoring per joint",
-      "Single/multi-person support",
+      "Confidence scoring visualization",
+      "Adjustable detection thresholds",
+      "Single-person optimized",
     ],
     limitations: [
-      "Requires visible body parts",
-      "Struggles with occlusion",
-      "Best with upright poses",
+      "Canvas-based (no AI pose model)",
+      "Requires visible skin regions",
+      "Best with clear, upright poses",
+      "Limited accuracy compared to AI models",
     ],
     useCases: [
-      "Fitness and sports analysis",
-      "Motion capture",
-      "Gesture recognition",
-      "Physical therapy assessment",
+      "Basic pose visualization",
+      "Fitness form checking",
+      "Educational demonstrations",
+      "Simple motion analysis",
     ],
   },
   [TASKS.IMAGE_MASKING]: {
@@ -259,29 +270,31 @@ export const MODELS = {
     ],
   },
   [TASKS.STYLE_TRANSFER]: {
-    id: "neural-style-transfer",
-    name: "Neural Style Transfer (VGG19)",
+    id: "canvas-artistic-style-transfer",
+    name: "Canvas-based Artistic Style Transfer",
     description:
-      "Apply artistic styles to your photos using deep learning - transform images into paintings, sketches, or artistic masterpieces.",
+      "Apply artistic styles to photos using advanced canvas processing techniques - transform images with 10 different artistic filters.",
     task: "style-transfer",
     processingSteps: {
       loading:
-        "Loading VGG19 Neural Style Transfer model - Deep convolutional network for artistic style extraction and application",
+        "Loading artistic style rendering engine - Multi-filter system for various artistic transformations",
       processing:
-        "Extracting content features and applying artistic style transformations using multi-layer feature matching",
+        "Extracting content features and applying artistic style transformations using canvas-based filters and effects",
       generating:
         "Synthesizing final artistic image by blending content preservation with style characteristics",
     },
     features: [
-      "Multiple artistic styles (Oil Painting, Watercolor, Van Gogh, Picasso, Anime)",
-      "Content-style balance control",
-      "Preserves image structure",
-      "Real-time preview",
+      "10 artistic styles (Oil Painting, Watercolor, Van Gogh, Picasso, Anime, Monet, Warhol, Sketch, Kandinsky, Stained Glass)",
+      "Adjustable style intensity (20-100%)",
+      "Content structure preservation",
+      "Real-time canvas processing",
+      "Color palette transformations",
+      "Texture synthesis",
     ],
     limitations: [
-      "Style intensity may vary",
-      "Best with clear subject matter",
-      "Processing time depends on complexity",
+      "Canvas-based (no VGG19 neural network)",
+      "Simulated artistic effects",
+      "Limited to predefined styles",
     ],
     useCases: [
       "Artistic photo transformation",
@@ -292,25 +305,28 @@ export const MODELS = {
   },
   [TASKS.IMAGE_CAPTIONING]: {
     id: "Xenova/vit-gpt2-image-captioning",
-    name: "Image Captioning (ViT-GPT2)",
+    name: "Image Captioning (Vision Transformer)",
     description:
-      "Generate natural language descriptions of your images using state-of-the-art vision-language models - perfect for accessibility, SEO, and content management.",
+      "Generate natural language descriptions of images using state-of-the-art vision-language models - perfect for accessibility, SEO, and content management.",
     task: "image-captioning",
     models: [
       {
         id: "Xenova/vit-gpt2-image-captioning",
         name: "ViT-GPT2 (Fast & Accurate)",
-        description: "Fast inference with good quality captions",
+        description:
+          "Fast inference with good quality captions using Vision Transformer and GPT-2",
       },
       {
         id: "Xenova/blip-image-captioning-base",
         name: "BLIP Base (Detailed)",
-        description: "More detailed descriptions, balanced speed",
+        description:
+          "More detailed descriptions with balanced speed and quality",
       },
       {
         id: "Xenova/blip-image-captioning-large",
         name: "BLIP Large (Most Detailed)",
-        description: "Highest quality, most comprehensive captions",
+        description:
+          "Highest quality, most comprehensive captions with larger model",
       },
     ],
     processingSteps: {
@@ -324,87 +340,90 @@ export const MODELS = {
     features: [
       "Natural language descriptions",
       "Object and scene recognition",
-      "Action and relationship detection",
       "Context-aware captioning",
-      "Multiple caption lengths",
-      "Beam search for quality",
+      "Multiple model options (ViT-GPT2, BLIP)",
+      "Adjustable caption length",
+      "Transformers.js integration",
     ],
     limitations: [
-      "May miss fine details",
-      "Context interpretation varies",
-      "Best with common objects/scenes",
+      "First load downloads model (~45-190MB)",
+      "Processing time varies by model size",
+      "Best with common objects and scenes",
+      "May not capture all fine details",
     ],
     useCases: [
       "Image accessibility (alt text)",
       "SEO optimization",
-      "Content management and tagging",
+      "Content management",
       "Social media automation",
-      "Visual search indexing",
-      "Dataset annotation",
     ],
   },
   [TASKS.BG_REMOVAL]: {
-    id: "rembg-u2net",
-    name: "AI Background Removal (U²-Net)",
+    id: "canvas-saliency-bg-removal",
+    name: "Canvas-based Background Removal",
     description:
-      "Intelligently remove backgrounds with pixel-perfect accuracy - isolate subjects with professional-quality edge detection.",
+      "Removes backgrounds using canvas-based saliency detection, edge analysis, and color segmentation techniques.",
     task: "background-removal",
     processingSteps: {
       loading:
-        "Loading U²-Net deep salient object detection model - Advanced architecture for precise foreground-background separation",
+        "Loading saliency detection engine - Multi-method background removal with edge detection and color analysis",
       processing:
-        "Analyzing image saliency, detecting subject boundaries, and generating alpha matte with sub-pixel accuracy",
+        "Analyzing image saliency, detecting subject boundaries using edge detection and color segmentation methods",
       generating:
-        "Creating transparent background PNG with refined edges and smooth alpha channel transitions",
+        "Creating masked output with subject isolation and optional background effects (transparent, blurred, solid color)",
     },
     features: [
-      "Automatic subject detection",
-      "Pixel-perfect edge refinement",
-      "Hair and fine detail preservation",
-      "Transparent PNG output",
+      "4 removal methods (AI Saliency, Edge Detection, Color Segmentation, GrabCut-inspired)",
+      "Adjustable detection threshold",
+      "Edge feathering (0-10px)",
+      "Multiple output modes (transparent, white, black, blur)",
+      "Automatic foreground detection",
+      "Fine edge control",
     ],
     limitations: [
-      "Complex backgrounds may be challenging",
-      "Similar colors can confuse detection",
-      "Very fine details may be lost",
+      "Canvas-based (no U²-Net deep learning)",
+      "Complex backgrounds challenging",
+      "Similar foreground/background colors may confuse",
     ],
     useCases: [
       "E-commerce product photos",
       "Profile picture creation",
       "Marketing materials",
-      "Graphic design projects",
+      "Simple background removal",
     ],
   },
   [TASKS.IMAGE_TO_SKETCH]: {
-    id: "image-to-sketch-gan",
-    name: "AI Sketch Generation (Photo2Sketch)",
+    id: "canvas-edge-sketch",
+    name: "Canvas-based Sketch Conversion",
     description:
-      "Transform photos into artistic pencil sketches with adjustable detail levels - from realistic portraits to stylized illustrations.",
+      "Transforms photos into artistic pencil sketches using canvas-based edge detection, shading analysis, and artistic filtering techniques.",
     task: "image-to-sketch",
     processingSteps: {
       loading:
-        "Loading Photo2Sketch GAN model - Generative adversarial network trained on artist sketch datasets",
+        "Loading sketch conversion engine - Multi-method edge detection with artistic rendering algorithms",
       processing:
-        "Detecting edges, extracting features, and applying artistic sketch rendering with varying intensity levels",
+        "Detecting edges using gradient analysis, extracting structural features, and applying artistic sketch filtering with adjustable intensity",
       generating:
-        "Creating final sketch with realistic pencil strokes, shading, and artistic line work",
+        "Creating final sketch output with edge-based line work, luminosity shading, and artistic texture patterns",
     },
     features: [
-      "Multiple sketch styles (Pencil, Charcoal, Ink, Contour)",
-      "Adjustable detail level",
-      "Edge preservation",
-      "Artistic shading",
+      "5 sketch styles (Pencil, Charcoal, Ink, Watercolor, Cross-hatch)",
+      "Adjustable detail level (1-10)",
+      "Edge intensity control",
+      "Adaptive shading based on luminosity",
+      "Texture synthesis",
     ],
     limitations: [
-      "Complex textures may simplify",
-      "Color information is lost",
-      "Best with clear subjects",
+      "Canvas-based (no Photo2Sketch GAN)",
+      "Simulated artistic effects",
+      "Complex textures may over-simplify",
+      "No neural style learning",
     ],
     useCases: [
+      "Artistic photo effects",
       "Portrait sketching",
-      "Artistic reference creation",
-      "Tattoo design templates",
-      "Coloring book generation",
+      "Architectural drawings",
+      "Creative design projects",
     ],
   },
 };

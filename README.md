@@ -45,13 +45,13 @@ _Fall 2025_
 
 ## 🌟 Overview
 
-**pixie.ai** is a cutting-edge web application that brings professional-grade AI image processing directly to your browser. Built with React 19, Material-UI v7, and powered by Transformers.js, it leverages WebGPU acceleration to run complex machine learning models entirely client-side, ensuring:
+**pixie.ai** is a cutting-edge web application that brings professional-grade image processing directly to your browser. Built with React 19 and Material-UI v7, it combines canvas-based computer vision algorithms with ONNX Runtime for object detection, running entirely client-side to ensure:
 
 - ✅ **Complete Privacy** - All processing happens locally in your browser
 - ✅ **Zero Server Costs** - No backend infrastructure needed
-- ✅ **Real-time Processing** - GPU-accelerated inference
+- ✅ **Real-time Processing** - Canvas API and WebGPU-accelerated ONNX
 - ✅ **No Installation** - Works directly in modern browsers
-- ✅ **Offline Capable** - Models cached locally after first use
+- ✅ **Hybrid Approach** - Canvas algorithms + YOLOv11 AI for object detection
 
 ---
 
@@ -61,23 +61,23 @@ _Fall 2025_
 
 #### **Image Enhancement**
 
-- **Denoising** - Remove noise while preserving fine details using adaptive bilateral filtering
-- **Super Resolution** - Upscale images up to 4x with ESRGAN-based enhancement
-- **Colorization** - Add realistic colors to black & white images using GAN-based transfer
-- **Inpainting** - Intelligently fill missing or damaged areas in images
+- **Denoising** - Multi-pass bilateral filtering for noise removal with edge preservation
+- **Super Resolution** - Bicubic interpolation with adaptive unsharp masking (1x-4x)
+- **Colorization** - Semantic region analysis with photographic color palettes
+- **Inpainting** - Sobel edge detection with gradient-domain blending
 
 #### **Computer Vision**
 
-- **Object Detection** - Detect and classify 80+ objects using YOLOv11/DETR models
-- **Pose Estimation** - Identify 17 body keypoints with MoveNet architecture
-- **Image Masking** - Advanced segmentation with edge detection and morphological operations
+- **Object Detection** - YOLOv11 ONNX model for detecting 80 COCO objects (✅ Real AI)
+- **Pose Estimation** - Canvas-based skin tone analysis for 17 keypoint estimation
+- **Image Masking** - Canny/Sobel edge detection with morphological operations
 
-#### **Generative AI**
+#### **Canvas-Based Processing**
 
-- **Style Transfer** - Apply 10+ artistic styles (Van Gogh, Picasso, Anime, etc.)
-- **Image Captioning** - Generate natural language descriptions with ViT-GPT2/BLIP
-- **Background Removal** - AI-powered foreground/background separation
-- **Image to Sketch** - Convert photos to pencil/charcoal drawings
+- **Style Transfer** - 10 artistic styles using canvas filters (Oil, Watercolor, Van Gogh, etc.)
+- **Image Captioning** - ✅ Real AI - ViT-GPT2/BLIP models for natural language descriptions
+- **Background Removal** - 4-method saliency detection (Edge, Color, AI Saliency, GrabCut)
+- **Image to Sketch** - 5 sketch styles using edge detection (Pencil, Charcoal, Ink, etc.)
 
 ### 🛠️ **Advanced Controls**
 
@@ -203,27 +203,19 @@ graph LR
 
 ### **Model Catalog**
 
-| **Category**           | **Model**             | **Architecture**                | **Purpose**                  | **Size** |
-| ---------------------- | --------------------- | ------------------------------- | ---------------------------- | -------- |
-| **Image Enhancement**  | Denoising Model       | Bilateral Filter + Adaptive NLM | Remove noise, preserve edges | ~5MB     |
-| **Super Resolution**   | ESRGAN-based Upscaler | Enhanced Super-Resolution GAN   | 4x upscaling with details    | ~15MB    |
-| **Colorization**       | DeOldify Colorizer    | GAN-based Color Transfer        | B&W to color conversion      | ~20MB    |
-| **Object Detection**   | YOLOv11 Nano          | ONNX Runtime                    | Detect 80 COCO objects       | ~25MB    |
-| **Object Detection**   | DETR ResNet-50        | Transformer + ResNet-50         | End-to-end detection         | ~160MB   |
-| **Pose Estimation**    | MoveNet Lightning     | MobileNetV2 Keypoints           | 17 body keypoints            | ~12MB    |
-| **Image Captioning**   | ViT-GPT2              | Vision Transformer + GPT-2      | Fast accurate captions       | ~45MB    |
-| **Image Captioning**   | BLIP Base             | Bootstrapped Vision-Language    | Detailed descriptions        | ~85MB    |
-| **Image Captioning**   | BLIP Large            | Large-scale BLIP                | Most comprehensive captions  | ~190MB   |
-| **Style Transfer**     | Fast Neural Style     | VGG19-inspired CNN              | Artistic style application   | ~18MB    |
-| **Background Removal** | AI Saliency Detector  | Edge + Color Segmentation       | Foreground separation        | ~8MB     |
-
-### **Image Captioning Models Comparison**
-
-| **Model**                  | **Speed**     | **Detail Level** | **Use Case**                             |
-| -------------------------- | ------------- | ---------------- | ---------------------------------------- |
-| ViT-GPT2 (Fast & Accurate) | ⚡⚡⚡ Fast   | 📝 Good          | Quick captions, real-time needs          |
-| BLIP Base (Detailed)       | ⚡⚡ Moderate | 📝📝 Better      | Balanced quality and speed               |
-| BLIP Large (Most Detailed) | ⚡ Slower     | 📝📝📝 Best      | Professional, comprehensive descriptions |
+| **Category**           | **Implementation**             | **Architecture**                  | **Purpose**                      | **Type**               |
+| ---------------------- | ------------------------------ | --------------------------------- | -------------------------------- | ---------------------- |
+| **Image Enhancement**  | Bilateral Filter Denoising     | Multi-pass Bilateral Filtering    | Noise removal, edge preservation | Canvas-based           |
+| **Super Resolution**   | Bicubic Upscaling              | Bicubic Interpolation + Unsharp   | 1x-4x upscaling with sharpening  | Canvas-based           |
+| **Colorization**       | Semantic Canvas Colorization   | Sobel Edge + Region Segmentation  | B&W to color with skin detection | Canvas-based           |
+| **Object Detection**   | YOLOv11 Nano                   | ONNX Runtime                      | Detect 80 COCO objects           | ✅ Real AI (~25MB)     |
+| **Object Detection**   | DETR ResNet-50                 | Transformer + ResNet-50           | End-to-end detection             | ✅ Real AI (~160MB)    |
+| **Pose Estimation**    | Canvas Pose Keypoint Detection | Skin Tone Analysis + Patterns     | 17 keypoint estimation           | Canvas-based           |
+| **Image Captioning**   | ViT-GPT2 / BLIP Base / Large   | Vision Transformer + GPT-2        | Natural language descriptions    | ✅ Real AI (~45-190MB) |
+| **Style Transfer**     | Canvas Artistic Filters        | Canvas-based Style Filters        | 10 artistic styles               | Canvas-based           |
+| **Background Removal** | Canvas Saliency Detection      | Edge + Color + GrabCut methods    | 4-method foreground extraction   | Canvas-based           |
+| **Image to Sketch**    | Canvas Edge Sketch             | Edge Detection + Artistic Filters | 5 sketch styles                  | Canvas-based           |
+| **Image Masking**      | Edge Detection & Morphology    | Canny/Sobel + Morphological Ops   | Segmentation and masking         | Canvas-based           |
 
 ### **Object Detection Models Comparison**
 
@@ -250,13 +242,13 @@ graph LR
 
 ### **AI/ML Stack**
 
-| **Technology**   | **Version** | **Purpose**                 |
-| ---------------- | ----------- | --------------------------- |
-| Transformers.js  | 2.17.2      | Browser-based ML inference  |
-| ONNX Runtime Web | 1.23.2      | ONNX model execution        |
-| WebGPU           | -           | GPU acceleration (primary)  |
-| WebGL            | -           | GPU acceleration (fallback) |
-| WebAssembly      | -           | CPU optimization            |
+| **Technology**   | **Version** | **Purpose**                        |
+| ---------------- | ----------- | ---------------------------------- |
+| Transformers.js  | 2.17.2      | Image captioning (ViT-GPT2, BLIP)  |
+| ONNX Runtime Web | 1.23.2      | YOLOv11 object detection execution |
+| WebGPU           | -           | GPU acceleration (primary for AI)  |
+| WebGL            | -           | GPU acceleration (fallback for AI) |
+| WebAssembly      | -           | CPU optimization (fallback for AI) |
 
 ### **Processing Engine**
 

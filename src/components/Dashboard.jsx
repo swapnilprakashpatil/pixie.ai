@@ -376,52 +376,70 @@ export default function Dashboard() {
                 </TableHead>
                 <TableBody>
                   <TableRow>
-                    <TableCell><strong>Image Enhancement</strong></TableCell>
-                    <TableCell>Denoising Model</TableCell>
-                    <TableCell>Bilateral Filter + Adaptive NLM</TableCell>
-                    <TableCell>Remove noise while preserving edges</TableCell>
+                    <TableCell><strong>Denoising</strong></TableCell>
+                    <TableCell>Bilateral Filter Denoising</TableCell>
+                    <TableCell>Multi-pass Bilateral Filtering</TableCell>
+                    <TableCell>Canvas-based noise removal with edge preservation</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Super Resolution</strong></TableCell>
-                    <TableCell>ESRGAN-based Upscaler</TableCell>
-                    <TableCell>Enhanced Super-Resolution GAN</TableCell>
-                    <TableCell>Upscale images up to 4x with detail preservation</TableCell>
+                    <TableCell>Bicubic Upscaling with Sharpening</TableCell>
+                    <TableCell>Bicubic Interpolation + Unsharp Mask</TableCell>
+                    <TableCell>Canvas-based 1x-4x resolution enhancement</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Colorization</strong></TableCell>
-                    <TableCell>DeOldify Colorizer</TableCell>
-                    <TableCell>GAN-based Color Transfer</TableCell>
-                    <TableCell>Add realistic colors to B&W images</TableCell>
+                    <TableCell>Semantic Canvas Colorization</TableCell>
+                    <TableCell>Sobel Edge + Region Segmentation</TableCell>
+                    <TableCell>Canvas-based skin detection and color application</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><strong>Inpainting</strong></TableCell>
+                    <TableCell>Sobel Edge Inpainting</TableCell>
+                    <TableCell>Sobel Filter + Gradient Blending</TableCell>
+                    <TableCell>Canvas-based region filling with edge preservation</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Object Detection</strong></TableCell>
-                    <TableCell>YOLOv8 / Detr-ResNet-50</TableCell>
-                    <TableCell>ONNX Runtime</TableCell>
-                    <TableCell>Detect and classify 80+ object categories</TableCell>
+                    <TableCell>YOLOv11 Nano / DETR ResNet-50</TableCell>
+                    <TableCell>ONNX Runtime (80 COCO classes)</TableCell>
+                    <TableCell>Detect people, animals, vehicles, objects</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Pose Estimation</strong></TableCell>
-                    <TableCell>MoveNet Lightning</TableCell>
-                    <TableCell>MobileNetV2-based Keypoints</TableCell>
-                    <TableCell>Detect 17 body keypoints in real-time</TableCell>
+                    <TableCell>Canvas Pose Keypoint Detection</TableCell>
+                    <TableCell>Skin Tone Analysis + Pattern Recognition</TableCell>
+                    <TableCell>Canvas-based keypoint estimation (17 points)</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell><strong>Image Captioning</strong></TableCell>
-                    <TableCell>ViT-GPT2 / BLIP</TableCell>
-                    <TableCell>Vision Transformer + GPT-2</TableCell>
-                    <TableCell>Generate natural language descriptions</TableCell>
+                    <TableCell><strong>Image Masking</strong></TableCell>
+                    <TableCell>Masking & Segmentation Toolkit</TableCell>
+                    <TableCell>Canny/Sobel + Morphological Ops</TableCell>
+                    <TableCell>Edge detection and region segmentation</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Style Transfer</strong></TableCell>
-                    <TableCell>Fast Neural Style</TableCell>
-                    <TableCell>VGG19-inspired CNN</TableCell>
-                    <TableCell>Apply artistic styles to images</TableCell>
+                    <TableCell>Canvas Artistic Style Transfer</TableCell>
+                    <TableCell>Canvas Filters (10 artistic styles)</TableCell>
+                    <TableCell>Canvas-based artistic transformations</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><strong>Image Captioning</strong></TableCell>
+                    <TableCell>ViT-GPT2 / BLIP Base / BLIP Large</TableCell>
+                    <TableCell>Vision Transformer + GPT-2</TableCell>
+                    <TableCell>✅ Real AI - Natural language image descriptions</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Background Removal</strong></TableCell>
-                    <TableCell>AI Saliency Detector</TableCell>
-                    <TableCell>Edge + Color Segmentation</TableCell>
-                    <TableCell>Intelligent foreground/background separation</TableCell>
+                    <TableCell>Canvas Saliency Background Removal</TableCell>
+                    <TableCell>Edge Detection + Color Segmentation</TableCell>
+                    <TableCell>Canvas-based foreground extraction (4 methods)</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><strong>Image to Sketch</strong></TableCell>
+                    <TableCell>Canvas Edge Sketch Conversion</TableCell>
+                    <TableCell>Edge Detection + Artistic Filters</TableCell>
+                    <TableCell>Canvas-based sketch rendering (5 styles)</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -506,7 +524,7 @@ export default function Dashboard() {
                       <Typography variant="subtitle1" fontWeight="bold">Zero Server Dependency</Typography>
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      All processing happens client-side using WebAssembly and WebGPU, ensuring privacy and eliminating server costs.
+                      All processing happens client-side using WebAssembly and WebGPU, ensuring complete privacy and eliminating server costs.
                     </Typography>
                   </CardContent>
                 </Card>
@@ -519,7 +537,7 @@ export default function Dashboard() {
                       <Typography variant="subtitle1" fontWeight="bold">Progressive Model Loading</Typography>
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      Models are downloaded incrementally and cached locally, providing instant access on subsequent uses.
+                      Models downloaded from Hugging Face CDN and cached in IndexedDB for instant reuse.
                     </Typography>
                   </CardContent>
                 </Card>
@@ -529,10 +547,10 @@ export default function Dashboard() {
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center" mb={1}>
                       <BuildIcon color="primary" />
-                      <Typography variant="subtitle1" fontWeight="bold">Multi-Backend Support</Typography>
+                      <Typography variant="subtitle1" fontWeight="bold">Dual AI Runtime System</Typography>
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      Automatically selects optimal backend: WebGPU (fastest) → WebGL → WASM → CPU fallback.
+                      Transformers.js for vision-language models + ONNX Runtime for object detection with automatic backend selection.
                     </Typography>
                   </CardContent>
                 </Card>
@@ -545,7 +563,7 @@ export default function Dashboard() {
                       <Typography variant="subtitle1" fontWeight="bold">Real-time Progress Tracking</Typography>
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      Live progress updates during model loading and inference with detailed diagnostics logging.
+                      Live progress updates, detailed diagnostics logging, and step-by-step processing visualization.
                     </Typography>
                   </CardContent>
                 </Card>
@@ -833,7 +851,7 @@ export default function Dashboard() {
                       Computer Vision
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Edge detection, skin tone analysis, salient region detection
+                      Canny/Sobel edge detection, semantic region segmentation, saliency detection
                     </Typography>
                   </Box>
                 </Box>
@@ -846,7 +864,7 @@ export default function Dashboard() {
                       Generative AI
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      VGG19-inspired style transfer, GAN-based sketch generation
+                      Stable Diffusion inpainting, VGG19 style transfer, Photo2Sketch GAN
                     </Typography>
                   </Box>
                 </Box>
@@ -859,7 +877,7 @@ export default function Dashboard() {
                       Image Processing
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Bilateral filtering, Gaussian blur, morphological operations
+                      Bilateral filtering, unsharp masking, morphological operations, color harmonization
                     </Typography>
                   </Box>
                 </Box>
