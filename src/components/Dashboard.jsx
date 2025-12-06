@@ -77,15 +77,15 @@ const taskIcons = {
   [TASKS.POSE_ESTIMATION]: AccessibilityNewIcon,
   [TASKS.IMAGE_MASKING]: LayersIcon,
   [TASKS.STYLE_TRANSFER]: StyleIcon,
-  [TASKS.IMAGE_CAPTIONING]: SubtitlesIcon,
+  [TASKS.IMAGE_CLASSIFICATION]: ImageSearchIcon,
   [TASKS.BG_REMOVAL]: RemoveCircleOutlineIcon,
   [TASKS.IMAGE_TO_SKETCH]: DrawIcon,
 };
 
 const taskCategories = {
   'Image Enhancement': [TASKS.DENOISING, TASKS.SUPER_RESOLUTION, TASKS.COLORIZATION, TASKS.INPAINTING],
-  'Computer Vision': [TASKS.OBJECT_DETECTION, TASKS.POSE_ESTIMATION, TASKS.IMAGE_MASKING],
-  'Generative AI': [TASKS.STYLE_TRANSFER, TASKS.IMAGE_CAPTIONING, TASKS.BG_REMOVAL, TASKS.IMAGE_TO_SKETCH],
+  'Computer Vision': [TASKS.OBJECT_DETECTION, TASKS.POSE_ESTIMATION, TASKS.IMAGE_MASKING, TASKS.IMAGE_CLASSIFICATION],
+  'Generative AI': [TASKS.STYLE_TRANSFER, TASKS.BG_REMOVAL, TASKS.IMAGE_TO_SKETCH],
 };
 
 export default function Dashboard() {
@@ -424,10 +424,10 @@ export default function Dashboard() {
                     <TableCell>Canvas-based artistic transformations</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell><strong>Image Captioning</strong></TableCell>
-                    <TableCell>ViT-GPT2 / BLIP Base / BLIP Large</TableCell>
-                    <TableCell>Vision Transformer + GPT-2</TableCell>
-                    <TableCell>✅ Real AI - Natural language image descriptions</TableCell>
+                    <TableCell><strong>Image Classification</strong></TableCell>
+                    <TableCell>MobileNet V2 / ResNet-50</TableCell>
+                    <TableCell>Convolutional Neural Network (ONNX)</TableCell>
+                    <TableCell>✅ Real AI - Classify images into 1000+ categories</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Background Removal</strong></TableCell>

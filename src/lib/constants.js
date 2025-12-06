@@ -9,7 +9,7 @@ export const TASKS = {
   POSE_ESTIMATION: "pose-estimation",
   IMAGE_MASKING: "image-masking",
   STYLE_TRANSFER: "style-transfer",
-  IMAGE_CAPTIONING: "image-captioning",
+  IMAGE_CLASSIFICATION: "image-classification",
   BG_REMOVAL: "background-removal",
   IMAGE_TO_SKETCH: "image-to-sketch",
 };
@@ -303,59 +303,55 @@ export const MODELS = {
       "Creative design projects",
     ],
   },
-  [TASKS.IMAGE_CAPTIONING]: {
-    id: "Xenova/vit-gpt2-image-captioning",
-    name: "Image Captioning (Vision Transformer)",
+  [TASKS.IMAGE_CLASSIFICATION]: {
+    id: "mobilenet-v2",
+    name: "Image Classification (MobileNet V2)",
     description:
-      "Generate natural language descriptions of images using state-of-the-art vision-language models - perfect for accessibility, SEO, and content management.",
-    task: "image-captioning",
+      "Classify images into 1000+ categories using MobileNet V2 - identify objects, animals, scenes, and more with high accuracy.",
+    task: "image-classification",
     models: [
       {
-        id: "Xenova/vit-gpt2-image-captioning",
-        name: "ViT-GPT2 (Fast & Accurate)",
+        id: "mobilenet-v2",
+        name: "MobileNet V2 (Fast)",
         description:
-          "Fast inference with good quality captions using Vision Transformer and GPT-2",
+          "Lightweight and fast classification model optimized for real-time inference",
       },
       {
-        id: "Xenova/blip-image-captioning-base",
-        name: "BLIP Base (Detailed)",
+        id: "resnet-50",
+        name: "ResNet-50 (Accurate)",
         description:
-          "More detailed descriptions with balanced speed and quality",
-      },
-      {
-        id: "Xenova/blip-image-captioning-large",
-        name: "BLIP Large (Most Detailed)",
-        description:
-          "Highest quality, most comprehensive captions with larger model",
+          "Higher accuracy classification with deeper neural network",
       },
     ],
     processingSteps: {
       loading:
-        "Loading Vision Transformer + GPT-2 captioning model - Advanced vision-language architecture for natural image descriptions",
+        "Loading MobileNet V2 ONNX model - Efficient convolutional neural network trained on ImageNet dataset with 1000 classes",
       processing:
-        "Analyzing visual features: detecting objects, scenes, actions, and relationships using transformer attention mechanisms",
+        "Preprocessing image to 224x224, normalizing pixel values, and running inference through convolutional layers",
       generating:
-        "Generating fluent natural language caption with proper grammar, context awareness, and descriptive detail",
+        "Computing top-5 predictions with confidence scores from softmax output layer",
     },
     features: [
-      "Natural language descriptions",
-      "Object and scene recognition",
-      "Context-aware captioning",
-      "Multiple model options (ViT-GPT2, BLIP)",
-      "Adjustable caption length",
-      "Transformers.js integration",
+      "1000+ ImageNet categories",
+      "Top-5 predictions with confidence scores",
+      "Fast inference (< 1 second)",
+      "Animals, objects, vehicles, food, etc.",
+      "Real-time classification",
+      "ONNX Runtime acceleration",
     ],
     limitations: [
-      "First load downloads model (~45-190MB)",
-      "Processing time varies by model size",
-      "Best with common objects and scenes",
-      "May not capture all fine details",
+      "Limited to ImageNet classes",
+      "May struggle with uncommon objects",
+      "Requires well-framed subjects",
+      "Model download ~14MB on first use",
     ],
     useCases: [
-      "Image accessibility (alt text)",
-      "SEO optimization",
-      "Content management",
-      "Social media automation",
+      "Photo organization and tagging",
+      "Content moderation",
+      "Visual search",
+      "Automated cataloging",
+      "Wildlife identification",
+      "Food recognition",
     ],
   },
   [TASKS.BG_REMOVAL]: {
@@ -437,77 +433,39 @@ export const TABS = {
 
 // Alternative model configurations
 export const ALTERNATIVE_MODELS = {
-  "Xenova/blip-image-captioning-base": {
-    id: "Xenova/blip-image-captioning-base",
-    name: "BLIP Base Image Captioning",
+  "resnet-50-v2-7": {
+    id: "resnet-50-v2-7",
+    name: "ResNet-50 Image Classification",
     description:
-      "Generate detailed natural language descriptions using BLIP (Bootstrapping Language-Image Pre-training) base model for accurate and descriptive captions.",
-    task: "image-captioning",
+      "High-accuracy image classification using ResNet-50 v2 from ONNX Model Zoo. Classifies images into 1000 ImageNet categories with superior accuracy.",
+    task: "image-classification",
     processingSteps: {
       loading:
-        "Loading BLIP Base captioning model - Bootstrapped vision-language model with enhanced image understanding capabilities",
+        "Loading ResNet-50 ONNX model from Microsoft Model Zoo - Deep residual network with 50 layers for superior classification accuracy",
       processing:
-        "Analyzing image using BLIP's vision encoder to extract detailed visual features, object relationships, and scene context",
+        "Analyzing image through 50-layer residual network to extract hierarchical visual features and patterns for precise classification",
       generating:
-        "Generating descriptive caption using language decoder with attention mechanisms for coherent and detailed descriptions",
+        "Computing softmax probabilities across 1000 ImageNet categories and ranking top-5 predictions with confidence scores",
     },
     features: [
-      "Detailed descriptions",
-      "Better object recognition",
-      "Enhanced scene understanding",
-      "Context-aware generation",
-      "Bootstrapped pre-training",
-      "Vision-language alignment",
+      "Higher accuracy than MobileNet",
+      "1000 ImageNet categories",
+      "Residual learning architecture",
+      "Top-5 predictions",
+      "Production-ready ONNX model",
+      "Deep feature extraction",
     ],
     limitations: [
-      "Slightly slower than ViT-GPT2",
-      "May be verbose for simple images",
-      "Larger model size",
-    ],
-    useCases: [
-      "Detailed image descriptions",
-      "Accessibility (comprehensive alt text)",
-      "Content management systems",
-      "E-commerce product descriptions",
-      "Educational content",
-      "Visual documentation",
-    ],
-  },
-  "Xenova/blip-image-captioning-large": {
-    id: "Xenova/blip-image-captioning-large",
-    name: "BLIP Large Image Captioning",
-    description:
-      "Generate highly detailed and accurate natural language descriptions using BLIP large model - the most comprehensive captioning solution for complex images.",
-    task: "image-captioning",
-    processingSteps: {
-      loading:
-        "Loading BLIP Large captioning model - Advanced vision-language architecture with maximum descriptive capability and accuracy",
-      processing:
-        "Deep visual analysis using BLIP's large-scale vision encoder to capture fine details, subtle relationships, and complex scene compositions",
-      generating:
-        "Generating comprehensive caption with rich vocabulary, nuanced descriptions, and detailed scene understanding for maximum informativeness",
-    },
-    features: [
-      "Most detailed captions",
-      "Superior object detection",
-      "Advanced scene comprehension",
-      "Rich vocabulary usage",
-      "Fine-grained details",
-      "Best accuracy overall",
-    ],
-    limitations: [
-      "Slower inference time",
-      "Larger model download",
+      "Larger model size (~100MB)",
+      "Slower inference than MobileNet",
       "Higher memory usage",
-      "May be overly detailed for simple needs",
     ],
     useCases: [
-      "Professional content creation",
-      "Academic research",
-      "High-quality alt text generation",
-      "Visual content analysis",
-      "Complex scene description",
-      "Premium accessibility features",
+      "High-accuracy classification",
+      "Professional applications",
+      "Quality-critical scenarios",
+      "Detailed category recognition",
+      "Research and benchmarking",
     ],
   },
   "Qwen/Qwen-Image": {

@@ -13,7 +13,7 @@ const taskTitles = {
   [TASKS.POSE_ESTIMATION]: 'Human Pose Estimation',
   [TASKS.IMAGE_MASKING]: 'Image Masking & Segmentation',
   [TASKS.STYLE_TRANSFER]: 'Neural Style Transfer',
-  [TASKS.IMAGE_CAPTIONING]: 'Image Captioning',
+  [TASKS.IMAGE_CLASSIFICATION]: 'Image Classification',
   [TASKS.BG_REMOVAL]: 'Background Removal',
   [TASKS.IMAGE_TO_SKETCH]: 'Image to Sketch',
 };
@@ -27,7 +27,7 @@ const taskDescriptions = {
   [TASKS.POSE_ESTIMATION]: 'Estimate human body keypoints and skeleton structure',
   [TASKS.IMAGE_MASKING]: 'Apply various masking techniques for image segmentation',
   [TASKS.STYLE_TRANSFER]: 'Transform photos into artistic masterpieces with neural style transfer',
-  [TASKS.IMAGE_CAPTIONING]: 'Generate natural language descriptions of your images',
+  [TASKS.IMAGE_CLASSIFICATION]: 'Classify images into 1000+ categories with confidence scores',
   [TASKS.BG_REMOVAL]: 'Intelligently remove backgrounds with pixel-perfect accuracy',
   [TASKS.IMAGE_TO_SKETCH]: 'Convert photos into artistic pencil sketches',
 };

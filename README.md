@@ -75,7 +75,7 @@ _Fall 2025_
 #### **Canvas-Based Processing**
 
 - **Style Transfer** - 10 artistic styles using canvas filters (Oil, Watercolor, Van Gogh, etc.)
-- **Image Captioning** - ✅ Real AI - ViT-GPT2/BLIP models for natural language descriptions
+- **Image Classification** - ✅ Real AI - MobileNet V2 for 1000+ category recognition
 - **Background Removal** - 4-method saliency detection (Edge, Color, AI Saliency, GrabCut)
 - **Image to Sketch** - 5 sketch styles using edge detection (Pencil, Charcoal, Ink, etc.)
 
@@ -126,7 +126,7 @@ Each task includes fine-tuned parameters:
 │  ┌────────────────────────┐  ┌───────────────────────────────┐  │
 │  │  Transformers.js       │  │  ONNX Runtime Web             │  │
 │  │  - Image-to-text       │  │  - Object detection (YOLO)    │  │
-│  │  - Image captioning    │  │  - Pose estimation (MoveNet)  │  │
+│  │  - Image classification│  │  - Pose estimation (MoveNet)  │  │
 │  │  - Vision transformers │  │  - DETR models                │  │
 │  └────────────────────────┘  └───────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
@@ -203,19 +203,19 @@ graph LR
 
 ### **Model Catalog**
 
-| **Category**           | **Implementation**             | **Architecture**                  | **Purpose**                      | **Type**               |
-| ---------------------- | ------------------------------ | --------------------------------- | -------------------------------- | ---------------------- |
-| **Image Enhancement**  | Bilateral Filter Denoising     | Multi-pass Bilateral Filtering    | Noise removal, edge preservation | Canvas-based           |
-| **Super Resolution**   | Bicubic Upscaling              | Bicubic Interpolation + Unsharp   | 1x-4x upscaling with sharpening  | Canvas-based           |
-| **Colorization**       | Semantic Canvas Colorization   | Sobel Edge + Region Segmentation  | B&W to color with skin detection | Canvas-based           |
-| **Object Detection**   | YOLOv11 Nano                   | ONNX Runtime                      | Detect 80 COCO objects           | ✅ Real AI (~25MB)     |
-| **Object Detection**   | DETR ResNet-50                 | Transformer + ResNet-50           | End-to-end detection             | ✅ Real AI (~160MB)    |
-| **Pose Estimation**    | Canvas Pose Keypoint Detection | Skin Tone Analysis + Patterns     | 17 keypoint estimation           | Canvas-based           |
-| **Image Captioning**   | ViT-GPT2 / BLIP Base / Large   | Vision Transformer + GPT-2        | Natural language descriptions    | ✅ Real AI (~45-190MB) |
-| **Style Transfer**     | Canvas Artistic Filters        | Canvas-based Style Filters        | 10 artistic styles               | Canvas-based           |
-| **Background Removal** | Canvas Saliency Detection      | Edge + Color + GrabCut methods    | 4-method foreground extraction   | Canvas-based           |
-| **Image to Sketch**    | Canvas Edge Sketch             | Edge Detection + Artistic Filters | 5 sketch styles                  | Canvas-based           |
-| **Image Masking**      | Edge Detection & Morphology    | Canny/Sobel + Morphological Ops   | Segmentation and masking         | Canvas-based           |
+| **Category**             | **Implementation**             | **Architecture**                    | **Purpose**                      | **Type**            |
+| ------------------------ | ------------------------------ | ----------------------------------- | -------------------------------- | ------------------- |
+| **Image Enhancement**    | Bilateral Filter Denoising     | Multi-pass Bilateral Filtering      | Noise removal, edge preservation | Canvas-based        |
+| **Super Resolution**     | Bicubic Upscaling              | Bicubic Interpolation + Unsharp     | 1x-4x upscaling with sharpening  | Canvas-based        |
+| **Colorization**         | Semantic Canvas Colorization   | Sobel Edge + Region Segmentation    | B&W to color with skin detection | Canvas-based        |
+| **Object Detection**     | YOLOv11 Nano                   | ONNX Runtime                        | Detect 80 COCO objects           | ✅ Real AI (~25MB)  |
+| **Object Detection**     | DETR ResNet-50                 | Transformer + ResNet-50             | End-to-end detection             | ✅ Real AI (~160MB) |
+| **Pose Estimation**      | Canvas Pose Keypoint Detection | Skin Tone Analysis + Patterns       | 17 keypoint estimation           | Canvas-based        |
+| **Image Classification** | MobileNet V2 / ResNet-50       | Convolutional Neural Network (ONNX) | Classify into 1000+ categories   | ✅ Real AI (~14MB)  |
+| **Style Transfer**       | Canvas Artistic Filters        | Canvas-based Style Filters          | 10 artistic styles               | Canvas-based        |
+| **Background Removal**   | Canvas Saliency Detection      | Edge + Color + GrabCut methods      | 4-method foreground extraction   | Canvas-based        |
+| **Image to Sketch**      | Canvas Edge Sketch             | Edge Detection + Artistic Filters   | 5 sketch styles                  | Canvas-based        |
+| **Image Masking**        | Edge Detection & Morphology    | Canny/Sobel + Morphological Ops     | Segmentation and masking         | Canvas-based        |
 
 ### **Object Detection Models Comparison**
 
@@ -242,13 +242,13 @@ graph LR
 
 ### **AI/ML Stack**
 
-| **Technology**   | **Version** | **Purpose**                        |
-| ---------------- | ----------- | ---------------------------------- |
-| Transformers.js  | 2.17.2      | Image captioning (ViT-GPT2, BLIP)  |
-| ONNX Runtime Web | 1.23.2      | YOLOv11 object detection execution |
-| WebGPU           | -           | GPU acceleration (primary for AI)  |
-| WebGL            | -           | GPU acceleration (fallback for AI) |
-| WebAssembly      | -           | CPU optimization (fallback for AI) |
+| **Technology**   | **Version** | **Purpose**                         |
+| ---------------- | ----------- | ----------------------------------- |
+| ONNX Runtime Web | 1.23.2      | Image classification (MobileNet V2) |
+| ONNX Runtime Web | 1.23.2      | YOLOv11 object detection execution  |
+| WebGPU           | -           | GPU acceleration (primary for AI)   |
+| WebGL            | -           | GPU acceleration (fallback for AI)  |
+| WebAssembly      | -           | CPU optimization (fallback for AI)  |
 
 ### **Processing Engine**
 
@@ -486,7 +486,7 @@ Each task includes specific parameter controls:
 - **Pose Estimation**: Confidence, keypoint threshold, max people
 - **Image Masking**: Edge threshold, segmentation intensity, morphology
 - **Style Transfer**: Style selection (10 options), intensity
-- **Image Captioning**: Max length, beam search, temperature
+- **Image Classification**: Top-K predictions, confidence threshold
 - **Background Removal**: Method, threshold, feathering, output mode
 
 ---
@@ -495,13 +495,12 @@ Each task includes specific parameter controls:
 
 ### **Benchmarks (Chrome 113+ with WebGPU)**
 
-| **Task**                      | **Model Load** | **Inference** | **Total** |
-| ----------------------------- | -------------- | ------------- | --------- |
-| Denoising                     | ~2s            | ~1-2s         | ~3-4s     |
-| Super Resolution              | ~3s            | ~3-5s         | ~6-8s     |
-| Object Detection (YOLO)       | ~4s            | ~2-3s         | ~6-7s     |
-| Image Captioning (ViT-GPT2)   | ~5s            | ~3-4s         | ~8-9s     |
-| Image Captioning (BLIP Large) | ~12s           | ~5-8s         | ~17-20s   |
+| **Task**                            | **Model Load** | **Inference** | **Total** |
+| ----------------------------------- | -------------- | ------------- | --------- |
+| Denoising                           | ~2s            | ~1-2s         | ~3-4s     |
+| Super Resolution                    | ~3s            | ~3-5s         | ~6-8s     |
+| Object Detection (YOLO)             | ~4s            | ~2-3s         | ~6-7s     |
+| Image Classification (MobileNet V2) | <1s            | <0.5s         | <1.5s     |
 
 _Benchmarks on 1920×1080 images, Intel Core i7, 16GB RAM_
 

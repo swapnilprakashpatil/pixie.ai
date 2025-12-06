@@ -151,6 +151,12 @@ export async function processImage(
     });
 
     addLog("success", "✅ Image processing complete");
+
+    // For image classification, return the full result object with classifications
+    if (task === "image-classification" && result.classifications) {
+      return result; // Return { imageUrl, classifications }
+    }
+
     return result.imageUrl;
   } catch (error) {
     addLog("error", `❌ Processing error: ${error.message}`);

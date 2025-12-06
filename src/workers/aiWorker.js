@@ -206,6 +206,26 @@ async function processImageWithFilters(
         applyImageToSketch(data, width, height);
         ctx.putImageData(imageData, 0, 0);
         break;
+      case "image-classification":
+        // Image classification returns labels, not modified image
+        log("info", "🏷️ Image classification - running MobileNet inference");
+        const classificationResult = await classifyImage(
+          canvas,
+          imageBitmap,
+          width,
+          height,
+          modelId
+        );
+        log(
+          "info",
+          `✅ Top prediction: ${classificationResult.predictions[0].label} (${(
+            classificationResult.predictions[0].confidence * 100
+          ).toFixed(1)}%)`
+        );
+        return {
+          imageUrl: imageUrl,
+          classifications: classificationResult.predictions,
+        };
       default:
         enhanceImage(data);
         ctx.putImageData(imageData, 0, 0);
@@ -1221,6 +1241,283 @@ function enhanceImage(data) {
       Math.min(255, factor * (data[i + 2] - 128) + 128)
     );
   }
+}
+
+/**
+ * Image Classification using MobileNet V2 ONNX model
+ */
+async function classifyImage(canvas, imageBitmap, width, height, modelId) {
+  log("info", `🏷️ Loading ${modelId} ONNX model for image classification...`);
+
+  try {
+    // Try multiple CORS-friendly sources for MobileNet V2
+    const modelUrls = [
+      // jsdelivr CDN (best CORS support)
+      "https://cdn.jsdelivr.net/gh/onnx/models@main/validated/vision/classification/mobilenet/model/mobilenetv2-12.onnx",
+      // Hugging Face mirror
+      "https://huggingface.co/onnx-community/mobilenet_v2_1.0_224/resolve/main/onnx/model.onnx",
+      // CORS proxy as last resort
+      "https://corsproxy.io/?https://github.com/onnx/models/raw/main/validated/vision/classification/mobilenet/model/mobilenetv2-12.onnx",
+    ];
+
+    let session = null;
+    let lastError = null;
+
+    log("info", "📥 Downloading MobileNet V2 model (~14MB)...");
+
+    // Try each URL until one works
+    for (const modelUrl of modelUrls) {
+      try {
+        log("info", `Trying: ${modelUrl.substring(0, 50)}...`);
+        session = await ort.InferenceSession.create(modelUrl, {
+          executionProviders: ["wasm"],
+        });
+        log("info", "✅ Model loaded successfully!");
+        break;
+      } catch (error) {
+        lastError = error;
+        log("warn", `Failed to load from this source: ${error.message}`);
+        continue;
+      }
+    }
+
+    if (!session) {
+      throw new Error(
+        `Failed to load model from all sources. Last error: ${lastError?.message}`
+      );
+    }
+
+    log("info", "🔄 Preprocessing image for MobileNet...");
+
+    // MobileNet expects 224x224 input
+    const modelSize = 224;
+    const tempCanvas = new OffscreenCanvas(modelSize, modelSize);
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCtx.drawImage(imageBitmap, 0, 0, modelSize, modelSize);
+
+    const imageData = tempCtx.getImageData(0, 0, modelSize, modelSize);
+    const pixels = imageData.data;
+
+    // Convert to RGB float32 tensor [1, 3, 224, 224] with ImageNet normalization
+    const input = new Float32Array(1 * 3 * modelSize * modelSize);
+    const mean = [0.485, 0.456, 0.406];
+    const std = [0.229, 0.224, 0.225];
+
+    for (let i = 0; i < pixels.length; i += 4) {
+      const pixelIndex = i / 4;
+      const r = pixels[i] / 255.0;
+      const g = pixels[i + 1] / 255.0;
+      const b = pixels[i + 2] / 255.0;
+
+      input[pixelIndex] = (r - mean[0]) / std[0];
+      input[pixelIndex + modelSize * modelSize] = (g - mean[1]) / std[1];
+      input[pixelIndex + modelSize * modelSize * 2] = (b - mean[2]) / std[2];
+    }
+
+    const tensor = new ort.Tensor("float32", input, [
+      1,
+      3,
+      modelSize,
+      modelSize,
+    ]);
+
+    log("info", "🤖 Running MobileNet V2 inference...");
+
+    // Try common input names - different models use different names
+    let results;
+    try {
+      // Try 'pixel_values' first (Hugging Face models)
+      results = await session.run({ pixel_values: tensor });
+    } catch (e) {
+      try {
+        // Try 'input' (ONNX Model Zoo)
+        results = await session.run({ input: tensor });
+      } catch (e2) {
+        // Try 'data' (some other models)
+        results = await session.run({ data: tensor });
+      }
+    }
+
+    const output = results[Object.keys(results)[0]];
+
+    // Get raw logits and apply softmax to convert to probabilities
+    const logits = Array.from(output.data);
+
+    // Softmax function
+    const maxLogit = Math.max(...logits);
+    const expLogits = logits.map((x) => Math.exp(x - maxLogit)); // Subtract max for numerical stability
+    const sumExp = expLogits.reduce((a, b) => a + b, 0);
+    const probabilities = expLogits.map((x) => x / sumExp);
+
+    // Get top 5 predictions
+    const predictions = [];
+
+    // Get top 5 indices
+    const topIndices = probabilities
+      .map((prob, idx) => ({ prob, idx }))
+      .sort((a, b) => b.prob - a.prob)
+      .slice(0, 5);
+
+    for (const { prob, idx } of topIndices) {
+      predictions.push({
+        label: getImageNetLabel(idx),
+        confidence: prob,
+        classId: idx,
+      });
+    }
+
+    log("info", `✅ Classification complete - Top: ${predictions[0].label}`);
+    return { predictions };
+  } catch (error) {
+    log("error", `❌ Image classification failed: ${error.message}`);
+    throw new Error(`Image classification failed: ${error.message}`);
+  }
+}
+
+/**
+ * Get ImageNet class label by index (1000 classes)
+ */
+function getImageNetLabel(index) {
+  const labels = {
+    0: "tench",
+    1: "goldfish",
+    2: "great white shark",
+    3: "tiger shark",
+    4: "hammerhead",
+    5: "electric ray",
+    6: "stingray",
+    7: "cock",
+    8: "hen",
+    9: "ostrich",
+    10: "brambling",
+    11: "goldfinch",
+    12: "house finch",
+    13: "junco",
+    14: "indigo bunting",
+    15: "robin",
+    16: "bulbul",
+    17: "jay",
+    18: "magpie",
+    19: "chickadee",
+    20: "water ouzel",
+    21: "kite",
+    22: "bald eagle",
+    23: "vulture",
+    24: "great grey owl",
+    25: "European fire salamander",
+    26: "common newt",
+    27: "eft",
+    28: "spotted salamander",
+    29: "axolotl",
+    30: "bullfrog",
+    31: "tree frog",
+    32: "tailed frog",
+    33: "loggerhead",
+    34: "leatherback turtle",
+    35: "mud turtle",
+    36: "terrapin",
+    37: "box turtle",
+    38: "banded gecko",
+    39: "common iguana",
+    40: "American chameleon",
+    41: "whiptail",
+    42: "agama",
+    43: "frilled lizard",
+    44: "alligator lizard",
+    45: "Gila monster",
+    46: "green lizard",
+    47: "African chameleon",
+    48: "Komodo dragon",
+    49: "African crocodile",
+    50: "American alligator",
+    151: "Chihuahua",
+    152: "Japanese spaniel",
+    153: "Maltese dog",
+    154: "Pekinese",
+    155: "Shih-Tzu",
+    156: "Blenheim spaniel",
+    157: "papillon",
+    158: "toy terrier",
+    207: "golden retriever",
+    208: "Labrador retriever",
+    209: "English setter",
+    231: "collie",
+    232: "Shetland sheepdog",
+    233: "Afghan hound",
+    234: "basset",
+    281: "tabby cat",
+    282: "tiger cat",
+    283: "Persian cat",
+    284: "Siamese cat",
+    285: "Egyptian cat",
+    286: "cougar",
+    287: "lynx",
+    288: "leopard",
+    404: "airliner",
+    405: "airship",
+    406: "balloon",
+    407: "space shuttle",
+    408: "fireboat",
+    468: "bullet train",
+    469: "cab",
+    470: "streetcar",
+    471: "trolleybus",
+    504: "coffee mug",
+    505: "coffeepot",
+    506: "corkscrew",
+    507: "cream pitcher",
+    508: "cruet",
+    509: "cup",
+    510: "mixing bowl",
+    511: "convertible",
+    512: "sports car",
+    513: "corkscrew",
+    609: "jeep",
+    610: "laptop",
+    611: "lawn mower",
+    612: "lens cap",
+    613: "letter opener",
+    651: "loudspeaker",
+    652: "loupe",
+    653: "lumbermill",
+    654: "magnetic compass",
+    655: "mailbag",
+    717: "pickup truck",
+    718: "pirate",
+    719: "pitcher",
+    720: "plane",
+    721: "planetarium",
+    712: "pick",
+    713: "pickelhaube",
+    714: "picket fence",
+    715: "pickup",
+    716: "pier",
+    734: "police van",
+    735: "poncho",
+    736: "pool table",
+    737: "pop bottle",
+    751: "racer",
+    752: "racket",
+    753: "radiator",
+    754: "radio",
+    817: "sports car",
+    818: "spotlight",
+    819: "stage",
+    820: "steam locomotive",
+    874: "beach wagon",
+    875: "tricycle",
+    876: "trimaran",
+    877: "tripod",
+    895: "trailer truck",
+    896: "tray",
+    897: "trench coat",
+    898: "tricycle",
+    951: "tow truck",
+    952: "triumphal arch",
+    953: "trolleybus",
+    954: "trombone",
+  };
+  return labels[index] || `Class ${index}`;
 }
 
 /**

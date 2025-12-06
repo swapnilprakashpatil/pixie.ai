@@ -46,10 +46,9 @@ export default function DemoTab() {
     bgRemovalThreshold,
     bgRemovalFeathering,
     bgRemovalOutputMode,
-    captioningMaxLength,
-    captioningNumBeams,
-    captioningTemperature,
-    generatedCaption,
+    classificationTopK,
+    classificationConfidenceThreshold,
+    classificationResults,
     setOriginalImage,
     setProcessedImage,
     setProcessing,
@@ -78,10 +77,9 @@ export default function DemoTab() {
     setBgRemovalThreshold,
     setBgRemovalFeathering,
     setBgRemovalOutputMode,
-    setCaptioningMaxLength,
-    setCaptioningNumBeams,
-    setCaptioningTemperature,
-    setGeneratedCaption,
+    setClassificationTopK,
+    setClassificationConfidenceThreshold,
+    setClassificationResults,
     addLog,
     resetImageState,
     setLoadProgress: setLoadProgressStore,
@@ -248,9 +246,8 @@ export default function DemoTab() {
         bgRemovalThreshold,
         bgRemovalFeathering,
         bgRemovalOutputMode,
-        captioningMaxLength,
-        captioningNumBeams,
-        captioningTemperature
+        classificationTopK,
+        classificationConfidenceThreshold
       );
       
       clearInterval(progressInterval);
@@ -260,19 +257,32 @@ export default function DemoTab() {
       
       addLog(`⚡ Processing completed in ${formatTime(processingDuration)}`, 'success');
       
-      // Handle image captioning result (text output)
-      if (currentTask === 'image-captioning' && result && typeof result === 'object' && result.type === 'caption') {
+      // Debug: Log the result structure
+      console.log('Result object:', result);
+      console.log('Result type:', typeof result);
+      console.log('Result keys:', Object.keys(result || {}));
+      console.log('Current task:', currentTask);
+      console.log('Has classifications?', result?.classifications);
+      console.log('Has imageUrl?', result?.imageUrl);
+      
+      // Handle image classification result
+      if (currentTask === 'image-classification' && result && typeof result === 'object' && result.classifications) {
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-        addLog(`🎬 STEP 3/3: Caption Generated`, 'info');
-        addLog(`📝 Generated Caption: "${result.caption}"`, 'success');
-        setGeneratedCaption(result.caption);
+        addLog(`🎬 STEP 3/3: Image Classified`, 'info');
+        addLog(`🏷️ Top ${result.classifications.length} Predictions:`, 'success');
+        result.classifications.forEach((pred, idx) => {
+          addLog(`   ${idx + 1}. ${pred.label} - ${(pred.confidence * 100).toFixed(2)}% (Class ${pred.classId})`, 'success');
+        });
+        console.log('Setting classification results:', result.classifications);
+        setClassificationResults(result.classifications);
+        setProcessedImage(result.imageUrl); // Set the image for display
         setActiveStep(3);
         
         const totalTime = performance.now() - startTime;
         addLog(`⏱️ Total Processing Time: ${formatTime(totalTime)}`, 'success');
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
         addLog(`🎉 ${currentTask.toUpperCase()} completed successfully!`, 'success');
-        addLog(`💡 Caption can be used for: Alt text, SEO, Content management`, 'info');
+        addLog(`💡 Classifications useful for: Content tagging, Visual search, Organization`, 'info');
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
         
         setProcessing(false);
@@ -362,10 +372,9 @@ export default function DemoTab() {
     setBgRemovalThreshold(0.5); // Balanced
     setBgRemovalFeathering(3); // Moderate
     setBgRemovalOutputMode('transparent'); // Default output
-    setCaptioningMaxLength(50); // Detailed
-    setCaptioningNumBeams(4); // High quality
-    setCaptioningTemperature(1.0); // Balanced
-    setGeneratedCaption(null); // Clear caption
+    setClassificationTopK(5); // Top 5 predictions
+    setClassificationConfidenceThreshold(0.01); // Show all
+    setClassificationResults(null); // Clear results
     
     addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
     addLog('🔄 Workspace reset to initial state', 'info');
@@ -981,44 +990,23 @@ export default function DemoTab() {
             </Paper>
           )}
 
-          {/* Image Captioning Controls */}
-          {currentTask === 'image-captioning' && (
+          {/* Image Classification Controls */}
+          {currentTask === 'image-classification' && (
             <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
               <Typography variant="subtitle2" gutterBottom>
-                Maximum Caption Length: {captioningMaxLength} tokens
+                Number of Predictions (Top-K): {classificationTopK}
               </Typography>
               <Slider
-                value={captioningMaxLength}
-                onChange={(e, value) => setCaptioningMaxLength(value)}
-                min={10}
-                max={100}
-                step={5}
-                marks={[
-                  { value: 10, label: 'Brief' },
-                  { value: 30, label: 'Short' },
-                  { value: 50, label: 'Detailed' },
-                  { value: 75, label: 'Long' },
-                  { value: 100, label: 'Very Long' },
-                ]}
-                disabled={processing || modelLoading}
-                valueLabelDisplay="auto"
-                sx={{ mb: 3 }}
-              />
-
-              <Typography variant="subtitle2" gutterBottom>
-                Quality (Beam Search): {captioningNumBeams} beams
-              </Typography>
-              <Slider
-                value={captioningNumBeams}
-                onChange={(e, value) => setCaptioningNumBeams(value)}
+                value={classificationTopK}
+                onChange={(e, value) => setClassificationTopK(value)}
                 min={1}
-                max={5}
+                max={10}
                 step={1}
                 marks={[
-                  { value: 1, label: 'Fast' },
-                  { value: 2, label: 'Good' },
-                  { value: 4, label: 'Better' },
-                  { value: 5, label: 'Best' },
+                  { value: 1, label: 'Top 1' },
+                  { value: 3, label: 'Top 3' },
+                  { value: 5, label: 'Top 5' },
+                  { value: 10, label: 'Top 10' },
                 ]}
                 disabled={processing || modelLoading}
                 valueLabelDisplay="auto"
@@ -1026,30 +1014,29 @@ export default function DemoTab() {
               />
 
               <Typography variant="subtitle2" gutterBottom>
-                Creativity: {captioningTemperature.toFixed(1)}
+                Confidence Threshold: {(classificationConfidenceThreshold * 100).toFixed(1)}%
               </Typography>
               <Slider
-                value={captioningTemperature}
-                onChange={(e, value) => setCaptioningTemperature(value)}
-                min={0.1}
-                max={2.0}
-                step={0.1}
+                value={classificationConfidenceThreshold}
+                onChange={(e, value) => setClassificationConfidenceThreshold(value)}
+                min={0.0}
+                max={1.0}
+                step={0.01}
                 marks={[
-                  { value: 0.1, label: 'Precise' },
-                  { value: 0.5, label: 'Safe' },
-                  { value: 1.0, label: 'Balanced' },
-                  { value: 1.5, label: 'Creative' },
-                  { value: 2.0, label: 'Very Creative' },
+                  { value: 0.0, label: 'All' },
+                  { value: 0.25, label: '25%' },
+                  { value: 0.50, label: '50%' },
+                  { value: 0.75, label: '75%' },
                 ]}
                 disabled={processing || modelLoading}
                 valueLabelDisplay="auto"
-                valueLabelFormat={(value) => value.toFixed(1)}
+                valueLabelFormat={(value) => `${(value * 100).toFixed(0)}%`}
                 sx={{ mb: 2 }}
               />
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                {captioningTemperature < 0.7 && 'More deterministic, factual descriptions'}
-                {captioningTemperature >= 0.7 && captioningTemperature < 1.3 && 'Balanced accuracy and variety'}
-                {captioningTemperature >= 1.3 && 'More creative, varied descriptions'}
+                {classificationConfidenceThreshold < 0.1 && 'Show all predictions including low confidence'}
+                {classificationConfidenceThreshold >= 0.1 && classificationConfidenceThreshold < 0.5 && 'Show most predictions with moderate confidence'}
+                {classificationConfidenceThreshold >= 0.5 && 'Show only high-confidence predictions'}
               </Typography>
             </Paper>
           )}
@@ -1203,7 +1190,7 @@ export default function DemoTab() {
           )}
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: processedImage ? 6 : 12 }}>
+            <Grid size={{ xs: 12, md: (processedImage && currentTask !== 'image-classification') ? 6 : 12 }}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant="subtitle2">
@@ -1242,35 +1229,10 @@ export default function DemoTab() {
                     </TransformComponent>
                   </TransformWrapper>
                 </Box>
-                
-                {/* Display generated caption for image captioning task */}
-                {currentTask === 'image-captioning' && generatedCaption && (
-                  <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'action.hover' }}>
-                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AutoAwesomeIcon fontSize="small" color="primary" />
-                      Generated Caption:
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontStyle: 'italic', mt: 1 }}>
-                      "{generatedCaption}"
-                    </Typography>
-                    <Button
-                      size="small"
-                      startIcon={<ContentCopyIcon />}
-                      onClick={() => {
-                        navigator.clipboard.writeText(generatedCaption);
-                        setSnackbarMessage('Caption copied to clipboard!');
-                        setSnackbarOpen(true);
-                      }}
-                      sx={{ mt: 1 }}
-                    >
-                      Copy Caption
-                    </Button>
-                  </Paper>
-                )}
               </Paper>
             </Grid>
 
-            {processedImage && (
+            {processedImage && currentTask !== 'image-classification' && (
               <Grid size={{ xs: 12, md: 6 }}>
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -1315,7 +1277,64 @@ export default function DemoTab() {
             )}
           </Grid>
 
-          {processedImage && (
+          {/* Display classification results below images */}
+          {(() => {
+            console.log('Render check - currentTask:', currentTask);
+            console.log('Render check - classificationResults:', classificationResults);
+            console.log('Render check - length:', classificationResults?.length);
+            const shouldShow = currentTask === 'image-classification' && classificationResults && classificationResults.length > 0;
+            console.log('Render check - shouldShow:', shouldShow);
+            return shouldShow;
+          })() && (
+            <Paper variant="outlined" sx={{ p: 3, mt: 3, bgcolor: 'action.hover' }}>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AutoAwesomeIcon color="primary" />
+                Classification Results
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                {classificationResults.map((pred, idx) => (
+                  <Box 
+                    key={idx} 
+                    sx={{ 
+                      mb: 2, 
+                      p: 2, 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      bgcolor: idx === 0 ? 'primary.50' : 'background.paper',
+                      borderRadius: 1,
+                      border: idx === 0 ? '2px solid' : '1px solid',
+                      borderColor: idx === 0 ? 'primary.main' : 'divider'
+                    }}
+                  >
+                    <Typography variant="body1" sx={{ fontWeight: idx === 0 ? 'bold' : 'medium' }}>
+                      {idx + 1}. {pred.label}
+                    </Typography>
+                    <Chip
+                      label={`${(pred.confidence * 100).toFixed(2)}%`}
+                      color={idx === 0 ? 'primary' : 'default'}
+                      sx={{ fontWeight: 'bold' }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+              <Button
+                variant="outlined"
+                startIcon={<ContentCopyIcon />}
+                onClick={() => {
+                  const text = classificationResults.map((p, i) => `${i+1}. ${p.label}: ${(p.confidence*100).toFixed(2)}%`).join('\n');
+                  navigator.clipboard.writeText(text);
+                  setSnackbarMessage('Classifications copied to clipboard!');
+                  setSnackbarOpen(true);
+                }}
+                sx={{ mt: 2 }}
+              >
+                Copy Results
+              </Button>
+            </Paper>
+          )}
+
+          {processedImage && currentTask !== 'image-classification' && (
             <Box sx={{ mt: 3 }}>
               <Typography variant="subtitle2" gutterBottom>
                 Comparison Slider
@@ -1378,7 +1397,8 @@ export default function DemoTab() {
                     bgcolor: 'primary.main',
                     zIndex: 10,
                   }}
-                />
+                >
+                </Box>
               </Box>
               <Slider
                 value={comparisonSlider}

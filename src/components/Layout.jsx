@@ -11,7 +11,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
 import LayersIcon from '@mui/icons-material/Layers';
 import StyleIcon from '@mui/icons-material/Style';
-import SubtitlesIcon from '@mui/icons-material/Subtitles';
+import ImageSearchIcon from '@mui/icons-material/ImageSearch';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import DrawIcon from '@mui/icons-material/Draw';
 import { useState } from 'react';
@@ -32,7 +32,7 @@ const taskIcons = {
   [TASKS.POSE_ESTIMATION]: <AccessibilityNewIcon />,
   [TASKS.IMAGE_MASKING]: <LayersIcon />,
   [TASKS.STYLE_TRANSFER]: <StyleIcon />,
-  [TASKS.IMAGE_CAPTIONING]: <SubtitlesIcon />,
+  [TASKS.IMAGE_CLASSIFICATION]: <ImageSearchIcon />,
   [TASKS.BG_REMOVAL]: <RemoveCircleOutlineIcon />,
   [TASKS.IMAGE_TO_SKETCH]: <DrawIcon />,
 };
@@ -47,7 +47,7 @@ const taskLabels = {
   [TASKS.POSE_ESTIMATION]: 'Pose Estimation',
   [TASKS.IMAGE_MASKING]: 'Image Masking',
   [TASKS.STYLE_TRANSFER]: 'Style Transfer',
-  [TASKS.IMAGE_CAPTIONING]: 'Image Captioning',
+  [TASKS.IMAGE_CLASSIFICATION]: 'Image Classification',
   [TASKS.BG_REMOVAL]: 'Background Removal',
   [TASKS.IMAGE_TO_SKETCH]: 'Image to Sketch',
 };
